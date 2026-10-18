@@ -125,3 +125,4 @@ The dashboard reads `MMDVM.ini` but never modifies it. Mode and gateway status i
 - Reconfiguration of existing installations and custom certificate support are not yet complete.
 - The collector attempts to reconnect and reload its settings, but switching brokers may cause a short gap in received events.
 - The dashboard **does not configure MMDVMHost**.
+<img width="1917" height="1077" alt="immagine" src="https://github.com/user-attachments/assets/3a8af506-f042-42d1-a3e5-58cbe43487f2" />

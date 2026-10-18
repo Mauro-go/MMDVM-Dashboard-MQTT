@@ -1,0 +1,10 @@
+config/dashboard.ini
+data/
+*.bak*
+__pycache__/
+*.pyc
+*.sqlite3*
+*.db
+*.log
+*.tar.gz
+.env

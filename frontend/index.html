@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMDVM Dashboard</title>
+
+<style>
+:root {
+    --bg: #081019;
+    --panel: #101a25;
+    --panel2: #13202d;
+    --border: #243648;
+    --text: #e9f0f7;
+    --muted: #8294a7;
+    --blue: #5ca9ff;
+    --green: #51d88a;
+    --red: #f06a6a;
+    --purple: #b48cff;
+    --orange: #f2a65a;
+    --pink: #ed79a9;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background:
+        radial-gradient(circle at 20% -10%, #14283b 0, transparent 30%),
+        var(--bg);
+    color: var(--text);
+}
+
+/* HEADER */
+
+header {
+    min-height: 105px;
+    padding: 20px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, #111e2b, #0d1721);
+    border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.callsign {
+    font-size: 38px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.subtitle {
+    margin-top: 6px;
+    color: #91a3b6;
+    font-size: 14px;
+}
+
+.online {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--green);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: .8px;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 9px rgba(81,216,138,.7);
+}
+
+.clock {
+    text-align: right;
+    font-size: 27px;
+    font-weight: 600;
+}
+
+.container {
+    padding: 22px 30px 35px;
+}
+
+/* TOP */
+
+.topgrid {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.card {
+    background: linear-gradient(145deg, var(--panel2), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 7px 20px rgba(0,0,0,.12);
+}
+
+.card-title {
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1.3px;
+    margin-bottom: 13px;
+}
+
+.repeater-hero {
+    position: relative;
+    overflow: hidden;
+    min-height: 134px;
+    padding: 18px 24px;
+    background:
+        radial-gradient(circle at 88% 100%, rgba(255,146,62,.16), transparent 24%),
+        radial-gradient(circle at 72% 110%, rgba(52,119,166,.18), transparent 34%),
+        linear-gradient(110deg,#111d29 0%,#101b27 58%,#172432 100%);
+}
+
+.repeater-hero::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 48%;
+    height: 62%;
+    opacity: .34;
+    background:
+        linear-gradient(155deg,
+            transparent 0 34%,
+            #172c39 35% 45%,
+            transparent 46%),
+        linear-gradient(205deg,
+            transparent 0 39%,
+            #1b3340 40% 53%,
+            transparent 54%);
+    pointer-events: none;
+}
+
+.repeater-layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1.25fr 1px 1.45fr .82fr;
+    align-items: center;
+    gap: 24px;
+    min-height: 91px;
+}
+
+.repeater-identity {
+    min-width: 0;
+}
+
+.repeater-callsign {
+    font-size: 43px;
+    line-height: .95;
+    font-weight: 850;
+    letter-spacing: 1px;
+    color: #f4f7fb;
+    text-shadow: 0 2px 12px rgba(0,0,0,.35);
+}
+
+.repeater-location {
+    margin-top: 10px;
+    color: #a8c0d7;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.repeater-section {
+    margin-top: 6px;
+    color: #7895ad;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .25px;
+}
+
+.repeater-divider {
+    width: 1px;
+    height: 72px;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(129,157,181,.55) 18%,
+        rgba(129,157,181,.55) 82%,
+        transparent
+    );
+}
+
+.frequency-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 28px;
+}
+
+.frequency-value {
+    font-size: 29px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -.4px;
+}
+
+.frequency-label {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 7px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+}
+
+.tx .frequency-value { color: var(--blue); }
+.rx .frequency-value { color: var(--green); }
+
+.repeater-ari {
+    justify-self: end;
+    text-align: center;
+    min-width: 100px;
+}
+
+.ari-mark {
+    width: 66px;
+    height: 66px;
+    margin: 0 auto 5px;
+    border: 2px solid rgba(235,241,246,.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #eef4f8;
+    font-size: 22px;
+    font-weight: 850;
+    letter-spacing: 1px;
+    box-shadow:
+        0 0 0 4px rgba(255,255,255,.035),
+        0 5px 18px rgba(0,0,0,.25);
+}
+
+.ari-name {
+    color: #dce8f1;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .7px;
+}
+
+.ari-city {
+    color: #819db3;
+    font-size: 9px;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.system {
+    display: grid;
+    grid-template-columns: repeat(5,1fr);
+    gap: 8px;
+}
+
+.system-item { text-align: center; }
+
+.system-value {
+    font-size: 19px;
+    font-weight: bold;
+}
+
+.system-label {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+
+.repeater-image-card {
+    overflow: hidden;
+    border-radius: 12px;
+    line-height: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    align-self: center;
+}
+
+.repeater-image-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+
+/* BANNER REPEATER */
+.topgrid {
+    align-items: stretch;
+}
+
+.repeater-image-card {
+    padding: 0;
+    margin: 0;
+    line-height: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.repeater-image-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.topgrid > .card {
+    height: auto;
+    min-height: 0;
+}
+
+/* LIVE */
+
+.live-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 122px;
+    display: flex;
+    align-items: center;
+    padding: 19px 23px;
+    margin-bottom: 14px;
+    background: linear-gradient(100deg,#101a25,#111d29);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: .25s;
+}
+
+.live-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #536273;
+}
+
+.live-card.active {
+    border-color: #367fbd;
+    background:
+        radial-gradient(circle at 15% 50%,rgba(52,135,200,.16),transparent 30%),
+        #101c28;
+    box-shadow: 0 0 22px rgba(50,140,210,.10);
+}
+
+.live-card.active::before {
+    background: var(--green);
+    box-shadow: 0 0 13px var(--green);
+}
+
+.live-state {
+    width: 112px;
+    flex-shrink: 0;
+}
+
+.live-state-label {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+}
+
+.live-indicator {
+    margin-top: 7px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #788797;
+}
+
+.live-card.active .live-indicator {
+    color: var(--green);
+}
+
+/* TRALICCIO RADIO LIVE */
+
+.radio-tower {
+    position: relative;
+    width: 92px;
+    height: 88px;
+    flex: 0 0 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 18px;
+    color: #526474;
+    opacity: .62;
+    transition: color .3s ease, opacity .3s ease, filter .3s ease;
+}
+
+.radio-tower svg {
+    width: 88px;
+    height: 88px;
+    overflow: visible;
+}
+
+.tower-structure {
+    stroke: currentColor;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.tower-antenna {
+    stroke: currentColor;
+    stroke-width: 2.6;
+    fill: none;
+    stroke-linecap: round;
+}
+
+.radio-wave {
+    stroke: currentColor;
+    stroke-width: 2.3;
+    fill: none;
+    stroke-linecap: round;
+    opacity: .10;
+    transform-origin: center;
+}
+
+/* LIVE: traliccio acceso */
+.live-card.active .radio-tower {
+    color: var(--green);
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(83,210,133,.30));
+}
+
+/* Onde in sequenza */
+.live-card.active .radio-wave.wave-1 {
+    animation: radioPulse 1.55s ease-out infinite;
+}
+
+.live-card.active .radio-wave.wave-2 {
+    animation: radioPulse 1.55s ease-out .28s infinite;
+}
+
+.live-card.active .radio-wave.wave-3 {
+    animation: radioPulse 1.55s ease-out .56s infinite;
+}
+
+@keyframes radioPulse {
+    0% {
+        opacity: 0;
+    }
+    18% {
+        opacity: .95;
+    }
+    65% {
+        opacity: .45;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.live-main {
+    flex: 1;
+    border-left: 1px solid var(--border);
+    padding-left: 24px;
+}
+
+.live-callsign {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: .3px;
+}
+
+.live-detail {
+    margin-top: 4px;
+    color: #9aabba;
+    font-size: 13px;
+}
+
+.live-tags {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.live-tag, .mode-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 5px;
+    background: #1b2937;
+    border: 1px solid #30465a;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.live-duration {
+    min-width: 115px;
+    text-align: right;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.live-duration small {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+/* MODE COLORS */
+
+.mode-DMR {
+    color: #67b4ff;
+    border-color: #315d83;
+    background: #13283a;
+}
+
+.mode-D-Star {
+    color: #c49cff;
+    border-color: #624b82;
+    background: #241c32;
+}
+
+.mode-YSF {
+    color: var(--orange);
+    border-color: #76512f;
+    background: #302317;
+}
+
+.mode-M17 {
+    color: var(--pink);
+    border-color: #74405a;
+    background: #301c26;
+}
+
+.mode-FM {
+    color: var(--green);
+    border-color: #376b4e;
+    background: #172b21;
+}
+
+/* SERVICES */
+
+.services-card {
+    background: rgba(16,26,37,.78);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 18px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+.services-title {
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1.3px;
+}
+
+.services-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.service-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #748292;
+}
+
+.service-dot.active {
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(81,216,138,.55);
+}
+
+.service-dot.inactive {
+    background: var(--red);
+    box-shadow: 0 0 6px rgba(240,106,106,.45);
+}
+
+.service-state {
+    color: var(--red);
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+.service-link {
+    color: var(--blue);
+    font-size: 10px;
+    text-decoration: none;
+    margin-left: 2px;
+}
+
+.service-link:hover { text-decoration: underline; }
+
+/* LAST HEARD */
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+
+.log-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+}
+
+.log-tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.log-tab:hover { color: var(--text); }
+
+.log-tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+}
+
+.log-count {
+    margin-left: 4px;
+    color: #718396;
+    font-size: 10px;
+    font-weight: normal;
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background: rgba(16,26,37,.82);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    overflow: hidden;
+}
+
+th {
+    text-align: left;
+    padding: 11px 12px;
+    color: #8396a9;
+    background: #111d29;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #1c2a38;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+tbody tr {
+    transition: background .12s;
+}
+
+tbody tr:hover {
+    background: #152536;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+.source {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.rf {
+    color: var(--green);
+    font-weight: bold;
+}
+
+.net {
+    color: var(--blue);
+    font-weight: bold;
+}
+
+.muted { color: var(--muted); }
+
+@media(max-width:900px) {
+    header { padding: 17px; }
+    .callsign { font-size: 30px; }
+    .container { padding: 15px; }
+    .topgrid { grid-template-columns:1fr; }
+    .system { grid-template-columns:repeat(3,1fr); }
+    .live-state { width:80px; }
+    .live-callsign { font-size:27px; }
+    .live-duration { min-width:80px;font-size:23px; }
+}
+
+/* ABOUT BUTTON */
+.services-card {
+    display: flex;
+    align-items: center;
+}
+
+.services-list {
+    flex: 1;
+}
+
+.about-button {
+    margin-left: auto;
+    padding: 6px 12px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 7px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    white-space: nowrap;
+    transition: .15s ease;
+}
+
+.about-button:hover {
+    border-color: rgba(255,255,255,.35);
+    color: #fff;
+    background: rgba(255,255,255,.05);
+}
+
+
+/* ===== SYSTEM ICONS ===== */
+.sys-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin-right: 4px;
+    border-radius: 50%;
+}
+
+.sys-icon svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sys-icon-cpu {
+    color: #55aaff;
+    background: rgba(85,170,255,.10);
+}
+
+.sys-icon-temp {
+    color: #f6ad55;
+    background: rgba(246,173,85,.10);
+}
+
+.sys-icon-ram {
+    color: #39d98a;
+    background: rgba(57,217,138,.10);
+}
+
+.sys-icon-disk {
+    color: #c084fc;
+    background: rgba(192,132,252,.10);
+}
+
+.sys-icon-uptime {
+    color: #55aaff;
+    background: rgba(85,170,255,.10);
+}
+
+</style>
+</head>
+
+<body>
+
+
+
+<div class="container">
+
+<div class="topgrid">
+
+    <div class="repeater-image-card">
+        <img id="repeaterBanner" src="" alt="Repeater">
+    </div>
+
+    <div class="card">
+        <div class="card-title" data-i18n="system">Sistema</div>
+
+        <div class="system">
+            <div class="system-item"><div class="system-value" id="cpu">--</div><div class="system-label"><span class="sys-icon sys-icon-cpu"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></span> CPU</div></div>
+            <div class="system-item"><div class="system-value" id="temp">--</div><div class="system-label"><span class="sys-icon sys-icon-temp"><svg viewBox="0 0 24 24"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></svg></span> TEMP</div></div>
+            <div class="system-item"><div class="system-value" id="ram">--</div><div class="system-label"><span class="sys-icon sys-icon-ram"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="2"/><path d="M7 10h2v4H7M12 10h2v4h-2M17 10h1v4h-1M7 4v3M12 4v3M17 4v3M7 17v3M12 17v3M17 17v3"/></svg></span> RAM</div></div>
+            <div class="system-item"><div class="system-value" id="disk">--</div><div class="system-label"><span class="sys-icon sys-icon-disk"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="11" r="4"/><circle cx="12" cy="11" r="1"/><path d="M7 18h2"/></svg></span> DISK</div></div>
+            <div class="system-item"><div class="system-value" id="uptime">--</div><div class="system-label"><span class="sys-icon sys-icon-uptime"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> UPTIME</div></div>
+        </div>
+
+        <div class="system-footer">
+            <div class="system-online">
+                <span class="online-dot"></span>
+                ONLINE
+            </div>
+
+            <div class="system-clock">
+                <span id="clock"></span>
+                <span class="system-date" id="date"></span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="live-card" id="liveCard">
+    <div class="live-state">
+        <div class="live-state-label" data-i18n="activity">Attività</div>
+        <div class="live-indicator" id="liveIndicator">IDLE</div>
+    </div>
+
+    <div class="radio-tower" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+            <!-- Onde sinistra -->
+            <path class="radio-wave wave-1"
+                  d="M35 29 Q27 36 35 43" />
+            <path class="radio-wave wave-2"
+                  d="M28 22 Q14 36 28 50" />
+            <path class="radio-wave wave-3"
+                  d="M21 15 Q1 36 21 57" />
+
+            <!-- Onde destra -->
+            <path class="radio-wave wave-1"
+                  d="M65 29 Q73 36 65 43" />
+            <path class="radio-wave wave-2"
+                  d="M72 22 Q86 36 72 50" />
+            <path class="radio-wave wave-3"
+                  d="M79 15 Q99 36 79 57" />
+
+            <!-- Antenna centrale -->
+            <path class="tower-antenna"
+                  d="M50 10 L50 31" />
+            <circle cx="50" cy="9" r="2.5"
+                    fill="currentColor" />
+
+            <!-- Traliccio -->
+            <path class="tower-structure"
+                  d="M43 31 L32 88
+                     M57 31 L68 88
+                     M43 31 L57 31
+                     M40 46 L60 46
+                     M37 61 L63 61
+                     M34 76 L66 76
+                     M32 88 L68 88" />
+
+            <!-- Croci interne -->
+            <path class="tower-structure"
+                  d="M43 31 L60 46
+                     M57 31 L40 46
+                     M40 46 L63 61
+                     M60 46 L37 61
+                     M37 61 L66 76
+                     M63 61 L34 76
+                     M34 76 L68 88
+                     M66 76 L32 88" />
+
+            <!-- Piccole antenne laterali -->
+            <path class="tower-antenna"
+                  d="M42 39 L34 36
+                     M58 39 L66 36" />
+        </svg>
+    </div>
+
+    <div class="live-main">
+        <div class="live-callsign" id="liveCallsign"></div>
+        <div class="live-detail" id="liveDetail"></div>
+        <div class="live-tags" id="liveTags"></div>
+    </div>
+
+    <div class="live-duration" id="liveDuration">
+        --
+        <small data-i18n="duration">durata</small>
+    </div>
+</div>
+
+<div class="services-card">
+    <div class="services-title" data-i18n="services">Servizi</div>
+    <div class="services-list" id="servicesList">
+        <span class="muted" data-i18n="loading">Caricamento...</span>
+    </div>
+    <a class="about-button" href="/about.html">
+    <span class="about-button-icon">ⓘ</span>
+    <span data-i18n="about">ABOUT</span>
+</a>
+</div>
+
+<div class="section-title">Last Heard</div>
+
+<div class="log-tabs">
+    <button class="log-tab active" data-filter="ALL"><span data-i18n="all">TUTTO</span> <span class="log-count" id="countAll"></span></button>
+    <button class="log-tab" data-filter="RF">RF <span class="log-count" id="countRF"></span></button>
+    <button class="log-tab" data-filter="NET">NETWORK <span class="log-count" id="countNET"></span></button>
+</div>
+
+<table>
+<colgroup>
+    <col style="width:13%">
+    <col style="width:7%">
+    <col style="width:7%">
+    <col style="width:15%">
+    <col style="width:12%">
+    <col style="width:6%">
+    <col style="width:7%">
+    <col style="width:6%">
+    <col style="width:9%">
+    <col style="width:12%">
+    <col style="width:6%">
+</colgroup>
+
+<thead>
+<tr>
+    <th data-i18n="date_time">Data / Ora</th>
+    <th data-i18n="mode">Modo</th>
+    <th data-i18n="origin">Origine</th>
+    <th data-i18n="callsign_id">Callsign / ID</th>
+    <th data-i18n="destination">Destinazione</th>
+    <th data-i18n="slot">Slot</th>
+    <th data-i18n="duration">Durata</th>
+    <th data-i18n="ber">BER</th>
+    <th>S-meter</th>
+    <th>RSSI (dBm)</th>
+    <th>Loss</th>
+</tr>
+</thead>
+
+<tbody id="heard">
+<tr><td colspan="11" data-i18n="loading">Caricamento...</td></tr>
+</tbody>
+</table>
+
+</div>
+
+<script>
+let dashboardConfig = null;
+let translations = {};
+
+function t(key) {
+    return translations[key] || key;
+}
+
+async function loadLanguage(language) {
+    const lang = (language || "en").toLowerCase();
+
+    try {
+        const response = await fetch(`/lang/${lang}.json`, {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        translations = await response.json();
+        document.documentElement.lang = lang;
+
+    } catch (error) {
+        console.error(`Language ${lang}:`, error);
+
+        if (lang !== "en") {
+            const response = await fetch("/lang/en.json", {
+                cache: "no-store"
+            });
+
+            if (response.ok) {
+                translations = await response.json();
+                document.documentElement.lang = "en";
+            }
+        }
+    }
+}
+
+function applyTranslations() {
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.dataset.i18n;
+        el.textContent = t(key);
+    });
+
+    const callsign = document.getElementById("liveCallsign");
+    const detail = document.getElementById("liveDetail");
+
+    if (callsign) callsign.textContent = t("repeater_free");
+    if (detail) detail.textContent = t("no_transmission");
+}
+
+async function loadDashboardConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+        }
+
+        dashboardConfig = await response.json();
+
+        await loadLanguage(
+            dashboardConfig.dashboard?.language || "en"
+        );
+
+        applyTranslations();
+
+        const banner = document.getElementById('repeaterBanner');
+
+        if (banner && dashboardConfig.images?.banner) {
+            banner.src = '/' + dashboardConfig.images.banner.replace(/^\/+/, '');
+        }
+
+        if (banner) {
+            const callsign = dashboardConfig.repeater?.callsign || 'Repeater';
+            const location = dashboardConfig.repeater?.location || '';
+            banner.alt = location ? `${callsign} - ${location}` : callsign;
+        }
+
+    } catch (error) {
+        console.error('Dashboard config:', error);
+    }
+}
+
+let heardEvents = [];
+let heardFilter = "ALL";
+
+function uptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    return days > 0 ? days + "g " + hours + "h" : hours + "h";
+}
+
+function updateClock() {
+    const d = new Date();
+    document.getElementById("clock").textContent =
+        d.toLocaleTimeString("it-IT");
+
+    document.getElementById("date").textContent =
+        d.toLocaleDateString("it-IT", {
+            weekday:"long",
+            day:"2-digit",
+            month:"long",
+            year:"numeric"
+        });
+}
+
+async function loadStatus() {
+    try {
+        const r = await fetch("/api/status");
+        const data = await r.json();
+        const rep = data.repeater;
+        const sys = data.system;
+
+        
+        
+        
+
+        document.getElementById("cpu").textContent = sys.cpu + "%";
+        document.getElementById("ram").textContent = sys.memory + "%";
+        document.getElementById("disk").textContent = sys.disk + "%";
+        document.getElementById("temp").textContent =
+            sys.temperature !== null ? sys.temperature.toFixed(1) + "°" : "--";
+        document.getElementById("uptime").textContent = uptime(sys.uptime);
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+async function loadLive() {
+    try {
+        const r = await fetch("/api/live", {cache:"no-store"});
+        const e = await r.json();
+
+        const card = document.getElementById("liveCard");
+        const indicator = document.getElementById("liveIndicator");
+        const callsign = document.getElementById("liveCallsign");
+        const detail = document.getElementById("liveDetail");
+        const tags = document.getElementById("liveTags");
+        const duration = document.getElementById("liveDuration");
+
+        if (!e.active) {
+            card.classList.remove("active");
+            indicator.textContent = "IDLE";
+            callsign.textContent = t("repeater_free");
+            detail.textContent = t("no_transmission");
+            tags.innerHTML = "";
+            duration.innerHTML = `--<small>${t("duration")}</small>`;
+            return;
+        }
+
+        card.classList.add("active");
+        indicator.textContent = "● LIVE";
+
+        if (e.mode === "DMR") {
+            callsign.textContent = e.callsign || e.source;
+            detail.textContent =
+                "ID " + e.source + (e.name ? " · " + e.name : "");
+        } else if (e.mode === "FM") {
+            callsign.textContent = t("fm_analog");
+            detail.textContent = t("repeater_busy");
+        } else {
+            callsign.textContent = e.source || e.mode;
+            detail.textContent = e.destination || "";
+        }
+
+        let h = "";
+        const modeClass = "mode-" + e.mode;
+
+        h += `<span class="live-tag ${modeClass}">${e.mode}</span>`;
+        h += `<span class="live-tag ${e.direction === "RF" ? "rf" : "net"}">${e.direction}</span>`;
+
+        if (e.destination)
+            h += `<span class="live-tag">${e.destination}</span>`;
+
+        if (e.slot)
+            h += `<span class="live-tag">TS${e.slot}</span>`;
+
+        if (e.mode === "FM" && e.ctcss)
+            h += `<span class="live-tag">CTCSS ${e.ctcss} Hz</span>`;
+
+        tags.innerHTML = h;
+
+        duration.innerHTML =
+            Number(e.elapsed).toFixed(1) + ` s<small>${t("duration")}</small>`;
+
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+async function loadServices() {
+    try {
+        const r = await fetch("/api/services",{cache:"no-store"});
+        const services = await r.json();
+        const container = document.getElementById("servicesList");
+        container.innerHTML = "";
+
+        for (const service of services) {
+            // Mostra nella barra soltanto i servizi attivi
+            if (!service.active) continue;
+
+            const item = document.createElement("div");
+            item.className = "service-item";
+
+            const linkKeys = {
+                "MMDVMHost": ["mmdvmhost_url", "mmdvmhost_label"],
+                "DMRGateway": ["dmrgateway_url", "dmrgateway_label"],
+                "YSFGateway": ["ysfgateway_url", "ysfgateway_label"],
+                "DStarGateway": ["dstar_dashboard", "dstar_dashboard_label"],
+                "ircDDBGateway": ["ircddbgateway_url", "ircddbgateway_label"],
+                "M17Gateway": ["m17gateway_url", "m17gateway_label"],
+                "APRSGateway": ["aprsgateway_url", "aprsgateway_label"]
+            };
+
+            item.innerHTML = `
+                <span class="service-dot ${service.active ? "active" : "inactive"}"></span>
+                <span>${service.name}</span>
+                ${service.active ? "" :
+                    `<span class="service-state">${service.state}</span>`}
+            `;
+
+            const keys = linkKeys[service.name];
+            if (keys && dashboardConfig?.links) {
+                const url = (dashboardConfig.links[keys[0]] || "").trim();
+                const label = (dashboardConfig.links[keys[1]] || "Apri ↗").trim();
+                if (/^https?:\/\//i.test(url) && label) {
+                    const link = document.createElement("a");
+                    link.className = "service-link";
+                    link.href = url;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.textContent = label;
+                    item.appendChild(link);
+                }
+            }
+
+            container.appendChild(item);
+        }
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function renderHeard() {
+    const tbody = document.getElementById("heard");
+    tbody.innerHTML = "";
+
+    const events = heardEvents.filter(e =>
+        heardFilter === "ALL" || e.direction === heardFilter
+    );
+
+    if (!events.length) {
+        tbody.innerHTML =
+            `<tr><td colspan="11" class="muted" style="text-align:center;padding:28px">${t("no_activity_24h")}</td></tr>`;
+        return;
+    }
+
+    for (const e of events) {
+        const tr = document.createElement("tr");
+
+        // RSSI: conserva tutte le misurazioni originali.
+        // Per lo S-meter usa il valore centrale, se disponibile.
+        const rssiRaw = e.direction === "RF" &&
+            e.rssi !== null && e.rssi !== undefined
+            ? String(e.rssi).trim() : "";
+
+        const rssiValues = rssiRaw
+            .split("/")
+            .map(v => Number(v.trim()))
+            .filter(v => Number.isFinite(v) && v < 0);
+
+        const rssiDbm = rssiValues.length
+            ? rssiValues[Math.floor(rssiValues.length / 2)]
+            : null;
+
+        let smeter = "";
+
+        if (rssiDbm !== null) {
+            if (rssiDbm >= -93) {
+                const over = rssiDbm + 93;
+                smeter = over > 0 ? "S9<small style=\"font-size:10px;vertical-align:super;color:#ff4444\">+" + Math.min(30, Math.round(over / 10) * 10) + "</small>" : "S9";
+            } else {
+                const level = Math.round(9 + (rssiDbm + 93) / 6);
+                smeter = "S" + Math.max(0, Math.min(8, level));
+            }
+        }
+
+
+        if (rssiDbm !== null) {
+            const active = Math.max(0, Math.min(10,
+                Math.round((rssiDbm + 141) / 78 * 10)));
+
+            const bars = Array.from({length: 10}, (_, i) => {
+                const height = 4 + i * 1.2;
+                const color = i < 5 ? "#22c55e" :
+                              i < 8 ? "#eab308" : "#ef4444";
+                const opacity = i < active ? 1 : 0.15;
+                return `<span style="display:inline-block;width:4px;height:${height}px;background:${color};opacity:${opacity};border-radius:1px"></span>`;
+            }).join("");
+
+            smeter += `<span style="display:inline-flex;align-items:flex-end;gap:1px;height:15px;margin-left:6px;vertical-align:middle">${bars}</span>`;
+        }
+
+        const rssiText = rssiRaw ? rssiRaw + " dBm" : "";
+
+        const lossText = e.direction === "NET" &&
+            e.loss !== null && e.loss !== undefined
+            ? e.loss + "% loss" : "";
+
+        const modeClass = "mode-" + e.mode;
+
+        // Link QRZ: usa il nominativo base, senza suffissi /...
+        const qrzLink = (value) => {
+            const text = String(value ?? "").trim();
+            const base = text.split("/")[0].trim().toUpperCase();
+
+            if (!/^[A-Z0-9]{3,12}$/.test(base) ||
+                !/[A-Z]/.test(base) ||
+                !/[0-9]/.test(base)) {
+                return text;
+            }
+
+            const safeText = text.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+
+            return `<a href="https://www.qrz.com/db/${encodeURIComponent(base)}"
+                       target="_blank" rel="noopener noreferrer"
+                       style="color:inherit;text-decoration:none"
+                       onmouseover="this.style.textDecoration='underline'"
+                       onmouseout="this.style.textDecoration='none'"
+                    >${safeText}</a>`;
+        };
+
+        tr.innerHTML = `
+            <td><span class="muted">${e.date}</span>&nbsp;&nbsp;${e.time}</td>
+
+            <td>
+                <span class="mode-badge ${modeClass}">${e.mode}</span>
+            </td>
+
+            <td class="${e.direction === "RF" ? "rf" : "net"}">
+                ${e.direction}
+            </td>
+
+            <td class="source">
+                ${
+                    (e.mode === "DMR" || e.mode === "D-Star") && e.callsign
+                    ? `<div>${qrzLink(e.callsign)}</div>
+                       <div class="muted" style="font-size:10px;font-weight:normal">
+                           ${e.source}${e.name ? " · " + e.name : ""}
+                       </div>`
+                    : e.callsign
+                      ? qrzLink(e.callsign)
+                      : qrzLink(e.source)
+                }
+            </td>
+
+            <td>${e.destination}</td>
+            <td>${e.slot ? "TS"+e.slot : ""}</td>
+            <td>${e.duration !== null ? e.duration.toFixed(1)+" s" : ""}</td>
+            <td>${e.ber !== null ? e.ber.toFixed(1)+"%" : ""}</td>
+            <td>${smeter}</td>
+            <td>${rssiText}</td>
+            <td>${lossText}</td>
+        `;
+
+        tbody.appendChild(tr);
+    }
+}
+
+function updateHeardCounts() {
+    document.getElementById("countAll").textContent =
+        "(" + heardEvents.length + ")";
+
+    document.getElementById("countRF").textContent =
+        "(" + heardEvents.filter(e => e.direction === "RF").length + ")";
+
+    document.getElementById("countNET").textContent =
+        "(" + heardEvents.filter(e => e.direction === "NET").length + ")";
+}
+
+async function loadHeard() {
+    try {
+        const r = await fetch("/api/heard");
+        heardEvents = await r.json();
+        updateHeardCounts();
+        renderHeard();
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+document.querySelectorAll(".log-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+        heardFilter = tab.dataset.filter;
+
+        document.querySelectorAll(".log-tab")
+            .forEach(t => t.classList.remove("active"));
+
+        tab.classList.add("active");
+        renderHeard();
+    });
+});
+
+updateClock();
+async function startDashboard() {
+    await loadDashboardConfig();
+
+    updateClock();
+    loadStatus();
+    loadLive();
+    loadServices();
+    loadHeard();
+}
+
+startDashboard();
+
+setInterval(updateClock,1000);
+setInterval(loadLive,1000);
+setInterval(loadHeard,5000);
+setInterval(loadStatus,10000);
+setInterval(loadServices,15000);
+</script>
+
+
+</body>
+</html>
+
+<style>
+/* Correzione finale altezza riquadri TOP */
+.topgrid {
+    align-items: start !important;
+}
+
+.topgrid > .card {
+    height: 122px !important;
+    min-height: 122px !important;
+    box-sizing: border-box;
+}
+
+.repeater-image-card {
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+</style>
+
+<style>
+/* TOP DEFINITIVO: banner e Sistema stessa altezza */
+.topgrid {
+    align-items: stretch !important;
+}
+
+.repeater-image-card {
+    height: auto !important;
+    min-height: 0 !important;
+    align-self: auto !important;
+}
+
+.repeater-image-card img {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+}
+
+.topgrid > .card {
+    height: auto !important;
+    min-height: 0 !important;
+}
+</style>
+
+<style>
+/* ===== TOP FISSO - CROP BANNER ===== */
+
+.topgrid {
+    grid-template-columns: 1.45fr 1fr !important;
+    gap: 18px !important;
+    align-items: start !important;
+}
+
+/* Casella sinistra: dimensione FISSA */
+.repeater-image-card {
+    position: relative !important;
+    height: 170px !important;
+    min-height: 170px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/*
+ * Immagine più grande della casella.
+ * Il centro rimane visibile.
+ * Sopra e sotto vengono TAGLIATI.
+ */
+.repeater-image-card img {
+    position: absolute !important;
+    width: 100% !important;
+    height: auto !important;
+
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) scale(0.9) !important;
+
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Sistema torna alla dimensione originale */
+.topgrid > .card {
+    height: 170px !important;
+    min-height: 170px !important;
+    box-sizing: border-box !important;
+}
+
+</style>
+
+<style>
+/* Stato, ora e data dentro Sistema */
+
+.system-footer {
+    margin-top: 22px;
+    padding-top: 13px;
+    border-top: 1px solid rgba(120,150,175,.18);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.system-online {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #48e69a;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .8px;
+}
+
+.system-clock {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    white-space: nowrap;
+}
+
+.system-clock #clock {
+    color: #f3f6fa;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.system-date {
+    color: #91abc2;
+    font-size: 11px;
+}
+</style>
+
+<style>
+/* ===== RIFINITURA SISTEMA ===== */
+
+.system-item {
+    position: relative;
+}
+
+.system-value {
+    font-size: 21px;
+    font-weight: 750;
+}
+
+.system-label {
+    margin-top: 7px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    color: #829db5;
+    font-size: 10px;
+}
+
+.sys-icon {
+    color: #55aaff;
+    font-size: 12px;
+    opacity: .95;
+}
+
+/* Fascia inferiore */
+.system-footer {
+    margin-top: 19px !important;
+    padding: 12px 13px 0 !important;
+    border-top: 1px solid rgba(112,151,181,.22) !important;
+}
+
+/* ONLINE come piccolo badge */
+.system-online {
+    padding: 6px 11px;
+    border-radius: 20px;
+    background: rgba(53,220,145,.07);
+    border: 1px solid rgba(53,220,145,.17);
+    color: #48e69a;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .8px;
+}
+
+.system-online .online-dot {
+    width: 8px;
+    height: 8px;
+    box-shadow: 0 0 9px rgba(72,230,154,.85);
+}
+
+/* Ora */
+.system-clock #clock {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: .4px;
+}
+
+/* Data */
+.system-date {
+    padding-left: 12px;
+    border-left: 1px solid rgba(120,150,175,.25);
+    color: #8ea9c0;
+    font-size: 11px;
+}
+
+/* piccolo effetto sui dati */
+.system-item:hover .system-value {
+    color: #55aaff;
+}
+
+.system-item:hover .sys-icon {
+    text-shadow: 0 0 8px rgba(85,170,255,.6);
+}
+</style>
+
+<style>
+/* ===== ABOUT / INFO - COMPACT ===== */
+
+.about-button {
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
+
+    padding: 4px 9px !important;
+
+    color: #eaf7ff !important;
+    background: linear-gradient(135deg, #1267a5, #0d4f82) !important;
+    border: 1px solid #46b5ff !important;
+    border-radius: 6px !important;
+
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    letter-spacing: .7px !important;
+
+    text-decoration: none !important;
+    white-space: nowrap !important;
+
+    box-shadow:
+        0 0 10px rgba(70,181,255,.18),
+        inset 0 1px 0 rgba(255,255,255,.08) !important;
+
+    transition: .2s ease !important;
+}
+
+.about-button-icon {
+    font-size: 12px;
+    line-height: 1;
+}
+
+.about-button:hover {
+    color: #fff !important;
+    background: linear-gradient(135deg, #1681ca, #10639f) !important;
+    border-color: #75caff !important;
+    box-shadow: 0 0 14px rgba(70,181,255,.35) !important;
+    transform: translateY(-1px);
+    text-decoration: none !important;
+}
+</style>
+
+<style>
+/* ===== SYSTEM ICONS - SAME STYLE AS ABOUT ===== */
+
+.sys-icon {
+    width: 34px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-right: 7px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+}
+
+.sys-icon svg {
+    width: 21px !important;
+    height: 21px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+.sys-icon-cpu {
+    color: #55aaff !important;
+    background: rgba(85,170,255,.10) !important;
+    box-shadow: 0 0 14px rgba(85,170,255,.16) !important;
+}
+
+.sys-icon-temp {
+    color: #f6ad55 !important;
+    background: rgba(246,173,85,.10) !important;
+    box-shadow: 0 0 14px rgba(246,173,85,.14) !important;
+}
+
+.sys-icon-ram {
+    color: #39d98a !important;
+    background: rgba(57,217,138,.10) !important;
+    box-shadow: 0 0 14px rgba(57,217,138,.14) !important;
+}
+
+.sys-icon-disk {
+    color: #c084fc !important;
+    background: rgba(192,132,252,.10) !important;
+    box-shadow: 0 0 14px rgba(192,132,252,.14) !important;
+}
+
+.sys-icon-uptime {
+    color: #55aaff !important;
+    background: rgba(85,170,255,.10) !important;
+    box-shadow: 0 0 14px rgba(85,170,255,.16) !important;
+}
+
+.system-label {
+    display: flex !important;
+    align-items: center !important;
+}
+</style>
+
+<style>
+/* SYSTEM ICONS - dimensione compatta definitiva */
+.sys-icon {
+    width: 24px !important;
+    height: 24px !important;
+    margin-right: 6px !important;
+}
+
+.sys-icon svg {
+    width: 14px !important;
+    height: 14px !important;
+    stroke-width: 2.2 !important;
+}
+</style>

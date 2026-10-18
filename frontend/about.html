@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title id="pageTitle">MMDVM Dashboard</title>
+
+<style>
+:root {
+    --bg:#0b1825;
+    --panel:#101e2b;
+    --panel2:#132331;
+    --border:#263b4c;
+    --text:#f3f6f9;
+    --muted:#8da9c0;
+    --blue:#4ca1ff;
+    --green:#48e69a;
+}
+
+* {
+    box-sizing:border-box;
+}
+
+html,body {
+    margin:0;
+    min-height:100%;
+    background:
+        radial-gradient(circle at 75% 10%,rgba(43,111,160,.08),transparent 28%),
+        var(--bg);
+    color:var(--text);
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+.page {
+    max-width:1500px;
+    margin:0 auto;
+    padding:28px 32px 40px;
+}
+
+/* HEADER */
+
+.topbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:22px;
+}
+
+.back {
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:9px 14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:#b8cee0;
+    text-decoration:none;
+    font-size:13px;
+    transition:.2s;
+}
+
+.back:hover {
+    color:white;
+    border-color:#4c7898;
+    background:#132536;
+}
+
+.page-title {
+    text-align:right;
+}
+
+.page-title h1 {
+    margin:0;
+    font-size:27px;
+    letter-spacing:.5px;
+}
+
+.page-title div {
+    color:var(--muted);
+    margin-top:4px;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:1.4px;
+}
+
+/* HERO */
+
+.hero {
+    display:grid;
+    grid-template-columns:390px 1fr;
+    gap:22px;
+    margin-bottom:20px;
+}
+
+.photo-card {
+    position:relative;
+    height:500px;
+    overflow:hidden;
+    border-radius:14px;
+    border:1px solid var(--border);
+    background:#091521;
+}
+
+.photo-card img {
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:cover;
+    object-position:center;
+}
+
+.photo-overlay {
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    padding:55px 20px 18px;
+    background:linear-gradient(transparent,rgba(3,10,16,.92));
+}
+
+.photo-overlay strong {
+    display:block;
+    font-size:20px;
+}
+
+.photo-overlay span {
+    display:block;
+    margin-top:4px;
+    color:#a6bed1;
+    font-size:12px;
+}
+
+/* INFO PRINCIPALE */
+
+.main-card {
+    min-height:500px;
+    padding:28px 31px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:
+        radial-gradient(circle at 85% 20%,rgba(56,137,198,.09),transparent 28%),
+        linear-gradient(145deg,var(--panel2),var(--panel));
+}
+
+.eyebrow {
+    color:var(--blue);
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.repeater-name {
+    margin-top:8px;
+    font-size:62px;
+    line-height:1;
+    font-weight:850;
+    letter-spacing:1px;
+}
+
+.repeater-description {
+    margin-top:8px;
+    color:#aac2d5;
+    font-size:17px;
+}
+
+.location-line {
+    display:flex;
+    gap:24px;
+    flex-wrap:wrap;
+    margin-top:20px;
+    color:#91acc1;
+    font-size:13px;
+}
+
+.location-line span {
+    display:flex;
+    align-items:center;
+    gap:7px;
+}
+
+/* FREQUENZE */
+
+.freq-row {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+    margin-top:31px;
+}
+
+.freq {
+    padding:20px;
+    border:1px solid rgba(106,143,170,.20);
+    border-radius:10px;
+    background:rgba(5,15,23,.22);
+}
+
+.freq-value {
+    font-size:34px;
+    font-weight:800;
+}
+
+.freq.tx .freq-value {
+    color:var(--blue);
+}
+
+.freq.rx .freq-value {
+    color:var(--green);
+}
+
+.freq-label {
+    margin-top:5px;
+    color:var(--muted);
+    font-size:11px;
+    letter-spacing:1px;
+}
+
+/* DETTAGLI */
+
+.radio-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-top:18px;
+}
+
+.radio-item {
+    padding:15px 16px;
+    border-radius:9px;
+    border:1px solid rgba(106,143,170,.16);
+    background:rgba(5,15,23,.18);
+}
+
+.radio-item .label {
+    color:#7f9bb2;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+
+.radio-item .value {
+    margin-top:7px;
+    font-size:16px;
+    font-weight:700;
+}
+
+/* MODI */
+
+.modes {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:22px;
+}
+
+.mode {
+    padding:6px 12px;
+    border-radius:20px;
+    border:1px solid rgba(80,164,230,.25);
+    background:rgba(58,141,205,.08);
+    color:#a9d5f5;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.mode.fm {
+    color:#83e6b4;
+    border-color:rgba(72,230,154,.25);
+    background:rgba(72,230,154,.07);
+}
+
+/* SEZIONE HARDWARE */
+
+.section-title {
+    margin:27px 0 13px;
+    color:#a6bed1;
+    font-size:12px;
+    font-weight:bold;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+}
+
+.hardware {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:13px;
+}
+
+.hardware-card {
+    min-height:105px;
+    padding:17px;
+    border:1px solid var(--border);
+    border-radius:11px;
+    background:linear-gradient(145deg,var(--panel2),var(--panel));
+}
+
+.hardware-icon {
+    font-size:21px;
+    margin-bottom:10px;
+}
+
+.hardware-label {
+    color:#7f9bb2;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+
+.hardware-value {
+    margin-top:5px;
+    font-size:16px;
+    font-weight:700;
+}
+
+
+/* SYSTEM SERVICES */
+
+.services-grid {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:13px;
+}
+
+.service-card {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    min-width:0;
+    padding:17px;
+    border:1px solid var(--border);
+    border-radius:11px;
+    background:linear-gradient(145deg,var(--panel2),var(--panel));
+}
+
+.service-name {
+    font-size:13px;
+    font-weight:700;
+    overflow-wrap:anywhere;
+}
+
+.service-unit {
+    margin-top:5px;
+    color:#7f9bb2;
+    font-size:10px;
+    overflow-wrap:anywhere;
+}
+
+.service-status {
+    flex-shrink:0;
+    font-size:11px;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.service-status.running { color:#83e6b4; }
+.service-status.stopped { color:#ff7777; }
+.service-status.disabled { color:#8ea9bf; }
+.service-status.unknown { color:#e7bf77; }
+
+@media(max-width:900px) {
+    .services-grid {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
+@media(max-width:560px) {
+    .services-grid {
+        grid-template-columns:1fr;
+    }
+}
+
+/* ARI */
+
+.ari-card {
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:180px 1fr 1fr;
+    align-items:center;
+    gap:25px;
+    padding:22px 27px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:linear-gradient(145deg,#122230,#0f1d29);
+}
+
+.ari-logo {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:90px;
+}
+
+.ari-logo img {
+    max-width:150px;
+    max-height:80px;
+    object-fit:contain;
+}
+
+.ari-block-title {
+    color:#829fb6;
+    font-size:10px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+}
+
+.ari-block-value {
+    margin-top:7px;
+    font-size:18px;
+    font-weight:700;
+}
+
+.ari-block-sub {
+    margin-top:5px;
+    color:#8ea9bf;
+    font-size:12px;
+}
+
+/* FOOTER */
+
+.footer {
+    margin-top:25px;
+    text-align:center;
+    color:#587187;
+    font-size:10px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:900px) {
+    .page {
+        padding:16px;
+    }
+
+    .hero {
+        grid-template-columns:1fr;
+    }
+
+    .photo-card {
+        height:440px;
+    }
+
+    .radio-grid,
+    .hardware {
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .ari-card {
+        grid-template-columns:1fr;
+        text-align:center;
+    }
+}
+
+/* ===== HARDWARE ICONS ===== */
+.hardware-icon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    border-radius: 50%;
+}
+
+.hardware-icon svg {
+    width: 27px;
+    height: 27px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hardware-icon-radio {
+    color: #55aaff;
+    background: rgba(85,170,255,.10);
+    box-shadow: 0 0 14px rgba(85,170,255,.16);
+}
+
+.hardware-icon-modem {
+    color: #39d98a;
+    background: rgba(57,217,138,.10);
+    box-shadow: 0 0 14px rgba(57,217,138,.14);
+}
+
+.hardware-icon-computer {
+    color: #c084fc;
+    background: rgba(192,132,252,.10);
+    box-shadow: 0 0 14px rgba(192,132,252,.14);
+}
+
+.hardware-icon-antenna {
+    color: #f6ad55;
+    background: rgba(246,173,85,.10);
+    box-shadow: 0 0 14px rgba(246,173,85,.14);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="topbar">
+        <a class="back" href="/">← Dashboard</a>
+
+        <div class="page-title">
+            <h1 id="topCallsign">Repeater</h1>
+            <div data-i18n="repeater_information"></div>
+        </div>
+    </div>
+
+    <div class="hero">
+
+        <div class="photo-card">
+            <img id="repeaterPhoto" src="" alt="Repeater antenna">
+
+            <div class="photo-overlay">
+                <strong id="photoLocation"></strong>
+                <span id="photoDescription"></span>
+            </div>
+        </div>
+
+        <div class="main-card">
+
+            <div class="eyebrow" data-i18n="multimode_repeater"></div>
+
+            <div class="repeater-name" id="repeaterCallsign"></div>
+
+            <div class="repeater-description">
+                <span id="repeaterDescription"></span>
+            </div>
+
+            <div class="location-line">
+                <span id="repeaterAltitude"></span>
+                <span id="repeaterLocator"></span>
+                <span id="repeaterCity"></span>
+            </div>
+
+            <div class="freq-row">
+
+                <div class="freq tx">
+                    <div class="freq-value" id="txFrequency"></div>
+                    <div class="freq-label">MHz · TX</div>
+                </div>
+
+                <div class="freq rx">
+                    <div class="freq-value" id="rxFrequency"></div>
+                    <div class="freq-label">MHz · RX</div>
+                </div>
+
+            </div>
+
+            <div class="radio-grid">
+
+                <div class="radio-item">
+                    <div class="label">Shift</div>
+                    <div class="value" id="shift"></div>
+                </div>
+
+                <div class="radio-item">
+                    <div class="label" data-i18n="power"></div>
+                    <div class="value" id="power"></div>
+                </div>
+
+                <div class="radio-item">
+                    <div class="label">FM CTCSS</div>
+                    <div class="value" id="ctcss"></div>
+                </div>
+
+                <div class="radio-item">
+                    <div class="label">DMR</div>
+                    <div class="value" id="dmrColorCode"></div>
+                </div>
+
+            </div>
+
+            <div class="modes">
+                <span class="mode" id="modeDMR">DMR</span>
+                <span class="mode" id="modeDSTAR">D-STAR</span>
+                <span class="mode" id="modeYSF">YSF</span>
+                <span class="mode fm" id="modeFM">FM ANALOG</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="section-title" data-i18n="equipment_infrastructure"></div>
+
+    <div class="hardware">
+
+        <div class="hardware-card">
+            <div class="hardware-icon hardware-icon-radio">
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <path d="M24 8v12"/>
+  <rect x="15" y="19" width="34" height="38" rx="6"/>
+  <rect x="21" y="28" width="22" height="13" rx="2"/>
+  <path d="M23 47h18M23 52h18"/>
+  <circle cx="22" cy="24" r="2"/>
+  <circle cx="42" cy="24" r="2"/>
+</svg>
+</div>
+            <div class="hardware-label" data-i18n="radio_equipment"></div>
+            <div class="hardware-value" id="radioHardware"></div>
+        </div>
+
+        <div class="hardware-card">
+            <div class="hardware-icon hardware-icon-modem">
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <rect x="15" y="15" width="34" height="34" rx="5"/>
+  <rect x="22" y="22" width="20" height="20" rx="2"/>
+  <path d="M21 9v6M29 9v6M37 9v6M45 9v6
+           M21 49v6M29 49v6M37 49v6M45 49v6
+           M9 21h6M9 29h6M9 37h6M9 45h6
+           M49 21h6M49 29h6M49 37h6M49 45h6"/>
+</svg>
+</div>
+            <div class="hardware-label" data-i18n="digital_modem"></div>
+            <div class="hardware-value" id="modemHardware"></div>
+        </div>
+
+        <div class="hardware-card">
+            <div class="hardware-icon hardware-icon-computer">
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <rect x="10" y="12" width="44" height="32" rx="4"/>
+  <path d="M26 44v8M38 44v8M20 52h24"/>
+  <circle cx="32" cy="28" r="8"/>
+  <circle cx="32" cy="28" r="3"/>
+</svg>
+</div>
+            <div class="hardware-label" data-i18n="computer"></div>
+            <div class="hardware-value" id="computerHardware"></div>
+        </div>
+
+        <div class="hardware-card">
+            <div class="hardware-icon hardware-icon-antenna">
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <circle cx="32" cy="24" r="3"/>
+  <path d="M32 27v27M23 54h18"/>
+  <path d="M25 31l7-4 7 4M23 40l9-5 9 5"/>
+  <path d="M22 17c-4 4-4 10 0 14M42 17c4 4 4 10 0 14"/>
+  <path d="M16 11c-8 8-8 20 0 28M48 11c8 8 8 20 0 28"/>
+</svg>
+</div>
+            <div class="hardware-label" data-i18n="antenna"></div>
+            <div class="hardware-value" id="antennaHardware"></div>
+        </div>
+
+    </div>
+
+
+    <!-- SYSTEM SERVICES -->
+    <div class="section-title" id="servicesTitle" data-i18n="system_services">System Services</div>
+    <div class="services-grid" id="servicesGrid">
+        <div class="service-card">
+            <div class="service-name" data-i18n="loading">Loading...</div>
+        </div>
+    </div>
+
+    <div class="ari-card">
+
+        <div class="ari-logo">
+            <img id="organizationLogo" src="" alt="Organization">
+        </div>
+
+        <div>
+            <div class="ari-block-title" data-i18n="organization"></div>
+            <div class="ari-block-value" id="organization"></div>
+            <div class="ari-block-sub" id="organizationDescription"></div>
+        </div>
+
+        <div>
+            <div class="ari-block-title" data-i18n="maintenance"></div>
+            <div class="ari-block-value" id="maintainers"></div>
+            <div class="ari-block-sub" id="collaboration"></div>
+        </div>
+
+    </div>
+
+    <div class="footer" id="pageFooter"></div>
+
+</div>
+
+
+<script>
+function assetPath(path) {
+    if (!path) return "";
+    return "/" + path.replace(/^\/+/, "");
+}
+
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "";
+}
+
+let translations = {};
+
+function t(key) {
+    return translations[key] || key;
+}
+
+async function loadLanguage(language) {
+    const lang = (language || "en").toLowerCase();
+
+    try {
+        const response = await fetch(`/lang/${lang}.json`, {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        translations = await response.json();
+        document.documentElement.lang = lang;
+
+    } catch (error) {
+        console.error(`Language ${lang}:`, error);
+
+        if (lang !== "en") {
+            const response = await fetch("/lang/en.json", {
+                cache: "no-store"
+            });
+
+            if (response.ok) {
+                translations = await response.json();
+                document.documentElement.lang = "en";
+            }
+        }
+    }
+}
+
+function applyTranslations() {
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+    });
+}
+
+async function loadAboutConfig() {
+    try {
+        const response = await fetch("/api/config");
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const cfg = await response.json();
+        const rep = cfg.repeater || {};
+        const station = cfg.station || {};
+        const hw = cfg.hardware || {};
+        const images = cfg.images || {};
+        const modes = cfg.modes || {};
+
+        await loadLanguage(
+            cfg.dashboard?.language || "en"
+        );
+
+        applyTranslations();
+
+        document.title =
+            rep.callsign
+                ? `${rep.callsign} · Information`
+                : (cfg.dashboard?.title || "MMDVM Dashboard");
+
+        setText("topCallsign", rep.callsign);
+
+        setText("photoLocation", rep.location);
+        setText(
+            "photoDescription",
+            [rep.callsign, rep.city].filter(Boolean).join(" · ")
+        );
+
+        setText("repeaterCallsign", rep.callsign);
+        setText(
+            "repeaterDescription",
+            [t("multimode_repeater"), rep.location]
+                .filter(Boolean)
+                .join(" · ")
+        );
+
+        setText(
+            "repeaterAltitude",
+            rep.altitude ? `▲ ${rep.altitude}` : ""
+        );
+        setText(
+            "repeaterLocator",
+            rep.locator ? `⌖ ${rep.locator}` : ""
+        );
+        setText(
+            "repeaterCity",
+            rep.city ? `● ${rep.city}` : ""
+        );
+
+        setText("txFrequency", rep.tx_frequency);
+        setText("rxFrequency", rep.rx_frequency);
+        setText("shift", rep.shift);
+        setText("power", rep.power);
+        setText("ctcss", rep.ctcss);
+        setText(
+            "dmrColorCode",
+            rep.dmr_color_code
+                ? `Color Code ${rep.dmr_color_code}`
+                : ""
+        );
+
+        setText("radioHardware", hw.radio);
+        setText("modemHardware", hw.modem);
+        setText("computerHardware", hw.computer);
+        setText("antennaHardware", hw.antenna);
+
+        setText("organization", station.organization);
+        setText(
+            "organizationDescription",
+            station.organization_description
+        );
+        setText("maintainers", station.maintainers);
+        setText(
+            "collaboration",
+            station.collaboration
+                ? `${t("collaboration_prefix")} ${station.collaboration}`
+                : ""
+        );
+
+        setText(
+            "pageFooter",
+            [rep.callsign, rep.location, rep.city]
+                .filter(Boolean)
+                .join(" · ")
+        );
+
+        const photo = document.getElementById("repeaterPhoto");
+        if (photo) {
+            photo.src = assetPath(images.repeater);
+            photo.alt = rep.callsign
+                ? `Repeater antenna ${rep.callsign}`
+                : "Repeater antenna";
+        }
+
+        const logo = document.getElementById("organizationLogo");
+        if (logo) {
+            logo.src = assetPath(images.logo);
+            logo.alt = station.organization || "Organization";
+        }
+
+        document.getElementById("modeDMR").style.display =
+            modes.dmr ? "" : "none";
+
+        document.getElementById("modeDSTAR").style.display =
+            modes.dstar ? "" : "none";
+
+        document.getElementById("modeYSF").style.display =
+            modes.ysf ? "" : "none";
+
+        document.getElementById("modeFM").style.display =
+            modes.fm ? "" : "none";
+
+    } catch (error) {
+        console.error("About config:", error);
+    }
+}
+
+
+// Monitoraggio servizi systemd, aggiornamento ogni 10 secondi.
+async function loadSystemServices() {
+    const grid = document.getElementById("servicesGrid");
+    if (!grid) return;
+
+    try {
+        const response = await fetch("/api/services", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const services = await response.json();
+        if (!Array.isArray(services)) {
+            throw new Error("Invalid services response");
+        }
+
+        grid.replaceChildren();
+
+        if (!services.length) {
+            const empty = document.createElement("div");
+            empty.className = "service-card";
+            empty.textContent = t("no_services_detected");
+            grid.appendChild(empty);
+            return;
+        }
+
+        for (const service of services) {
+            const running = service.state === "active";
+            const disabled =
+                !running && service.enabled === "disabled";
+
+            const status = running ? "running"
+                : disabled ? "disabled"
+                : service.state === "inactive" ||
+                  service.state === "failed" ||
+                  service.state === "activating"
+                    ? "stopped"
+                    : "unknown";
+
+            const labels = {
+                running: "service_running",
+                stopped: "service_stopped",
+                disabled: "service_disabled",
+                unknown: "service_unknown"
+            };
+
+            const card = document.createElement("div");
+            card.className = "service-card";
+
+            const details = document.createElement("div");
+
+            const name = document.createElement("div");
+            name.className = "service-name";
+            name.textContent = service.name || service.unit || "";
+
+            const unit = document.createElement("div");
+            unit.className = "service-unit";
+            unit.textContent = service.unit || "";
+
+            const indicator = document.createElement("div");
+            indicator.className = "service-status " + status;
+            indicator.textContent = "● " + t(labels[status]);
+
+            details.append(name, unit);
+            card.append(details, indicator);
+            grid.appendChild(card);
+        }
+
+    } catch (error) {
+        console.error("System services:", error);
+
+        grid.replaceChildren();
+        const warning = document.createElement("div");
+        warning.className = "service-card";
+        warning.textContent = "⚠ " + t("services_error");
+        grid.appendChild(warning);
+    }
+}
+
+
+loadAboutConfig().then(loadSystemServices);
+setInterval(loadSystemServices, 10000);
+</script>
+
+</body>
+</html>

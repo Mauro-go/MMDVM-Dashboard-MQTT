@@ -1,0 +1,59 @@
+[dashboard]
+language = it
+title = MMDVM Dashboard
+
+[repeater]
+callsign = MMDVM
+location =
+city =
+locator =
+altitude =
+tx_frequency =
+rx_frequency =
+shift =
+power =
+ctcss =
+dmr_color_code =
+
+[modes]
+
+[station]
+organization =
+organization_description =
+maintainers =
+collaboration =
+
+[hardware]
+radio =
+modem =
+computer =
+antenna =
+
+[images]
+banner =
+repeater =
+logo =
+
+[links]
+dstar_dashboard =
+dstar_dashboard_label =
+mmdvmhost_url =
+mmdvmhost_label =
+dmrgateway_url =
+dmrgateway_label =
+ysfgateway_url =
+ysfgateway_label =
+ircddbgateway_url =
+ircddbgateway_label =
+m17gateway_url =
+m17gateway_label =
+aprsgateway_url =
+aprsgateway_label =
+
+[paths]
+mmdvm_dir = /etc
+mmdvm_file = MMDVM.ini
+mmdvm_logs =
+dmr_ids =
+tg_list_dir =
+tg_list_file =

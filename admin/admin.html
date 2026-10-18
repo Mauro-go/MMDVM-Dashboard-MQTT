@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMDVM Dashboard · Admin</title>
+<style>
+:root{--bg:#0b1825;--panel:#101e2b;--panel2:#132331;--border:#263b4c;--text:#f3f6f9;--muted:#8da9c0;--blue:#4ca1ff;--green:#48e69a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 75% 10%,rgba(43,111,160,.08),transparent 28%),var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+.page{max-width:1500px;margin:auto;padding:28px 32px 40px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.topbar h1{margin:0;font-size:27px}.sub{font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:6px}.actions{display:flex;gap:10px;align-items:center}.pill{padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text)}.shell{display:grid;grid-template-columns:235px minmax(0,1fr);gap:22px}.sidebar,.panel,.authbox{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}.sidebar{align-self:start}.nav{width:100%;display:block;text-align:left;background:transparent;border:0;border-radius:8px;color:var(--muted);padding:12px 13px;cursor:pointer;font-size:14px}.nav:hover,.nav.active{background:#203b54;color:#fff}.panel{min-height:500px}.panel h2,.authbox h2{margin:0 0 8px;font-size:21px}.hint{color:var(--muted);font-size:13px;line-height:1.55;margin:0 0 20px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field label{font-size:12px;color:var(--muted)}.field input{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font:inherit}.field input:disabled{opacity:.85}.field input:focus{outline:1px solid var(--blue)}.notice{padding:12px 15px;border:1px solid #365571;background:#132b40;border-radius:8px;color:#c4deef;font-size:13px;line-height:1.6;margin-bottom:20px}.status{margin-top:18px;color:var(--muted);font-size:13px;white-space:pre-wrap}.status.error{color:#ff9f9f}.status.success{color:var(--green)}.footer{margin-top:18px;color:var(--muted);font-size:12px}.hidden{display:none!important}.authbox{max-width:510px;margin:25px auto}.authbox form{display:grid;gap:15px}.btn{background:#236eb4;border:1px solid #388bd4;color:white;border-radius:8px;padding:11px 15px;font:inherit;cursor:pointer}.btn:hover{background:#3081c9}.btn:disabled{opacity:.6;cursor:wait}.secondary{background:var(--panel2)}.field input:disabled{cursor:not-allowed}.full{grid-column:1/-1}@media(max-width:800px){.page{padding:18px}.shell{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.fields{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="topbar"><div><h1>MMDVM Dashboard · Admin</h1><div class="sub" id="subtitle"></div></div><div class="actions"><select class="pill" id="language" aria-label="Language"><option value="it">Italiano</option><option value="en">English</option></select><span class="pill" id="modeBadge"></span><button type="button" class="btn secondary hidden" id="logout"></button></div></header>
+<div class="notice" id="notice"></div>
+<section class="authbox hidden" id="authbox"><h2 id="authTitle"></h2><p class="hint" id="authHint"></p><form id="authForm" autocomplete="on"><div id="authFields" class="fields"></div><button class="btn" type="submit" id="authSubmit"></button></form><div class="status" id="authStatus" role="status" aria-live="polite"></div></section>
+<div class="shell hidden" id="shell"><nav class="sidebar" id="navigation" aria-label="Administration"></nav><main class="panel"><h2 id="sectionTitle"></h2><p class="hint" id="sectionHint"></p><div class="fields" id="fields"></div><div id="securityArea" class="hidden"><form id="credentialsForm" class="fields" autocomplete="off"><div class="field"><label for="new_username" id="labelNewUsername"></label><input id="new_username" name="new_username" required autocomplete="username"></div><div class="field"><label for="current_password" id="labelCurrentPassword"></label><input id="current_password" type="password" name="current_password" required autocomplete="current-password"></div><div class="field"><label for="new_password" id="labelNewPassword"></label><input id="new_password" type="password" name="new_password" autocomplete="new-password"></div><div class="field"><label for="confirm_password" id="labelConfirmPassword"></label><input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password"></div><div class="full"><button type="submit" class="btn" id="saveCredentials"></button></div></form></div><div id="configActions" class="hidden"><button type="button" class="btn" id="saveConfig"></button></div><div class="status" id="status" role="status" aria-live="polite"></div></main></div>
+<div class="footer" id="footer"></div>
+
+</div>
+<script>
+'use strict';
+const sections=[
+{id:'dashboard',keys:['title','language']},
+{id:'repeater',keys:['callsign','location','city','locator','altitude','tx_frequency','rx_frequency','shift','power','ctcss','dmr_color_code']},
+{id:'modes',keys:['dmr','dstar','ysf','fm','p25','nxdn','m17','pocsag','ax25']},
+{id:'hardware',keys:['radio','modem','computer','antenna']},
+{id:'station',keys:['organization','organization_description','maintainers','collaboration']},
+{id:'images',keys:['banner','repeater','logo']},
+{id:'links',keys:['dstar_dashboard','dstar_dashboard_label','mmdvmhost_url','mmdvmhost_label','dmrgateway_url','dmrgateway_label','ysfgateway_url','ysfgateway_label','ircddbgateway_url','ircddbgateway_label','m17gateway_url','m17gateway_label','aprsgateway_url','aprsgateway_label']},
+{id:'paths',keys:['mmdvm_dir','mmdvm_file','tg_list_dir','tg_list_file','dmr_ids']},
+{id:'mqtt',keys:['host','port','topic','username','password','tls','clear_password']},
+{id:'security',keys:[]}
+];
+const fieldIt={title:'Titolo dashboard',language:'Lingua predefinita',callsign:'Nominativo',location:'Località',city:'Città',locator:'Locator',altitude:'Altitudine',tx_frequency:'Frequenza TX',rx_frequency:'Frequenza RX',shift:'Shift',power:'Potenza',ctcss:'CTCSS',dmr_color_code:'Color Code DMR',dmr:'DMR',dstar:'D-Star',ysf:'YSF',fm:'FM',p25:'P25',nxdn:'NXDN',m17:'M17',pocsag:'POCSAG',ax25:'AX.25',radio:'Radio',modem:'Modem',computer:'Computer',antenna:'Antenna',organization:'Organizzazione',organization_description:'Descrizione organizzazione',maintainers:'Responsabili',collaboration:'Collaborazioni',banner:'Banner',repeater:'Foto ripetitore',logo:'Logo',dstar_dashboard:'Dashboard D-Star',dstar_dashboard_label:'Nome link D-Star',mmdvmhost_url:'URL MMDVMHost',mmdvmhost_label:'Nome link MMDVMHost',dmrgateway_url:'URL DMRGateway',dmrgateway_label:'Nome link DMRGateway',ysfgateway_url:'URL YSFGateway',ysfgateway_label:'Nome link YSFGateway',ircddbgateway_url:'URL ircDDBGateway',ircddbgateway_label:'Nome link ircDDBGateway',m17gateway_url:'URL M17Gateway',m17gateway_label:'Nome link M17Gateway',aprsgateway_url:'URL APRSGateway',aprsgateway_label:'Nome link APRSGateway',mmdvm_dir:'Directory MMDVM',host:'Broker MQTT',port:'Porta',topic:'Topic',username:'Utente MQTT',password:'Nuova password MQTT',tls:'TLS',clear_password:'Elimina password salvata',mmdvm_file:'File MMDVM.ini',mmdvm_logs:'Log MMDVM',dmr_ids:'Database DMR ID',tg_list_dir:'Directory TalkGroup',tg_list_file:'File TalkGroup'};
+const fieldEn={title:'Dashboard title',language:'Default language',callsign:'Callsign',location:'Location',city:'City',locator:'Locator',altitude:'Altitude',tx_frequency:'TX frequency',rx_frequency:'RX frequency',shift:'Shift',power:'Power',ctcss:'CTCSS',dmr_color_code:'DMR color code',dmr:'DMR',dstar:'D-Star',ysf:'YSF',fm:'FM',p25:'P25',nxdn:'NXDN',m17:'M17',pocsag:'POCSAG',ax25:'AX.25',radio:'Radio',modem:'Modem',computer:'Computer',antenna:'Antenna',organization:'Organization',organization_description:'Organization description',maintainers:'Maintainers',collaboration:'Collaborations',banner:'Banner',repeater:'Repeater photo',logo:'Logo',dstar_dashboard:'D-Star dashboard',dstar_dashboard_label:'D-Star link label',mmdvmhost_url:'MMDVMHost URL',mmdvmhost_label:'MMDVMHost link label',dmrgateway_url:'DMRGateway URL',dmrgateway_label:'DMRGateway link label',ysfgateway_url:'YSFGateway URL',ysfgateway_label:'YSFGateway link label',ircddbgateway_url:'ircDDBGateway URL',ircddbgateway_label:'ircDDBGateway link label',m17gateway_url:'M17Gateway URL',m17gateway_label:'M17Gateway link label',aprsgateway_url:'APRSGateway URL',aprsgateway_label:'APRSGateway link label',mmdvm_dir:'MMDVM directory',host:'MQTT broker',port:'Port',topic:'Topic',username:'MQTT username',password:'New MQTT password',tls:'TLS',clear_password:'Clear saved password',mmdvm_file:'MMDVM.ini file',mmdvm_logs:'MMDVM logs',dmr_ids:'DMR ID database',tg_list_dir:'TalkGroup directory',tg_list_file:'TalkGroup file'};
+const dict={
+it:{subtitle:'Configurazione del sistema',preview:'AMMINISTRAZIONE',notice:'Le impostazioni della dashboard sono modificabili. Le modalità radio sono visualizzate in sola lettura.',footer:'Area amministrativa MMDVM Dashboard · Connessione HTTPS richiesta',setupTitle:'Prima configurazione',setupHint:'Inserisci il token di attivazione conservato sul server e scegli le credenziali amministrative. Il token verrà utilizzato una sola volta.',loginTitle:'Accesso amministratore',loginHint:'Accedi con le credenziali scelte durante la prima configurazione.',setup:'Crea amministratore',login:'Accedi',logout:'Esci',token:'Token di attivazione',username:'Nome utente',password:'Password',confirm:'Conferma password',newUsername:'Nome utente nuovo (o attuale)',currentPassword:'Password attuale',newPassword:'Nuova password (lascia vuoto per non cambiarla)',confirmPassword:'Conferma nuova password',saveCredentials:'Aggiorna credenziali',saveConfig:'Salva modifiche',configSaved:'Configurazione salvata correttamente.',ready:'Dati caricati da /api/config.',offline:'Impossibile caricare i dati della dashboard.',credentialsChanged:'Credenziali aggiornate. Effettua nuovamente il login.',created:'Amministratore creato. Ora effettua il login.',mismatch:'Le password non coincidono.',loading:'Caricamento…',error:'Operazione non riuscita',yes:'Attivo',no:'Disattivo',unknown:'Non disponibile',sections:{dashboard:'Generale',repeater:'Ripetitore',modes:'Modalità radio',hardware:'Hardware',station:'Stazione e organizzazione',images:'Immagini',links:'Collegamenti',paths:'Percorsi dei file',mqtt:'MQTT',security:'Sicurezza e accesso'},hints:{dashboard:'Titolo e lingua predefinita della dashboard.',repeater:'Dati identificativi e frequenze del ripetitore.',modes:'Stato effettivo letto da MMDVM.ini. Non modificabile da questa pagina.',hardware:'Apparati e antenna installati.',station:'Organizzazione, responsabili e collaborazioni.',images:'Percorsi delle immagini utilizzate dalla dashboard.',links:'Collegamenti a servizi esterni.',paths:'Percorsi dei file utilizzati dal backend.',mqtt:'Connessione al broker MQTT esistente. La password vuota resta invariata.',security:'Per cambiare il nome utente, inserisci quello desiderato e la password attuale. La nuova password è facoltativa.'},fields:fieldIt},
+en:{subtitle:'System configuration',preview:'ADMINISTRATION',notice:'Dashboard settings can be edited. Radio modes are read-only.',footer:'MMDVM Dashboard administration · HTTPS connection required',setupTitle:'Initial setup',setupHint:'Enter the activation token stored on the server and choose administrator credentials. The token can only be used once.',loginTitle:'Administrator login',loginHint:'Sign in using the credentials created during initial setup.',setup:'Create administrator',login:'Sign in',logout:'Log out',token:'Activation token',username:'Username',password:'Password',confirm:'Confirm password',newUsername:'New (or current) username',currentPassword:'Current password',newPassword:'New password (leave blank to keep it)',confirmPassword:'Confirm new password',saveCredentials:'Update credentials',saveConfig:'Save changes',configSaved:'Configuration saved successfully.',ready:'Data loaded from /api/config.',offline:'Unable to load dashboard data.',credentialsChanged:'Credentials updated. Please sign in again.',created:'Administrator created. Please sign in.',mismatch:'Passwords do not match.',loading:'Loading…',error:'Operation failed',yes:'Enabled',no:'Disabled',unknown:'Unavailable',sections:{dashboard:'General',repeater:'Repeater',modes:'Radio modes',hardware:'Hardware',station:'Station and organization',images:'Images',links:'Links',paths:'File paths',mqtt:'MQTT',security:'Security and access'},hints:{dashboard:'Dashboard title and default language.',repeater:'Repeater identity and frequencies.',modes:'Actual mode status read from MMDVM.ini. Not editable here.',hardware:'Installed equipment and antenna.',station:'Organization, maintainers and collaborations.',images:'Image paths used by the dashboard.',links:'Links to external services.',paths:'File paths used by the backend.',mqtt:'Connection to the existing MQTT broker. Blank password keeps the saved value.',security:'To change the username, enter the desired name and your current password. A new password is optional.'},fields:fieldEn}
+};
+const $=id=>document.getElementById(id);
+let lang='it',active='repeater',config={},configured=false,authenticated=false,csrf='',authMode='login';
+function tr(){return dict[lang]}
+function status(element,message,error=false){element.textContent=message;element.classList.toggle('error',!!error);element.classList.toggle('success',!error&&!!message)}
+function field(id,label,type='text',required=true,autocomplete='off'){
+ const wrap=document.createElement('div');wrap.className='field';const lab=document.createElement('label');lab.htmlFor=id;lab.textContent=label;const input=document.createElement('input');input.id=id;input.name=id;input.type=type;input.required=required;input.autocomplete=autocomplete;wrap.append(lab,input);return wrap;
+}
+function showAuth(mode){authMode=mode;authenticated=false;csrf='';$('shell').classList.add('hidden');$('logout').classList.add('hidden');$('authbox').classList.remove('hidden');renderAuth()}
+function renderAuth(){const t=tr(),setup=authMode==='setup';$('authTitle').textContent=setup?t.setupTitle:t.loginTitle;$('authHint').textContent=setup?t.setupHint:t.loginHint;$('authSubmit').textContent=setup?t.setup:t.login;$('modeBadge').textContent=setup?t.setupTitle:t.loginTitle;$('authFields').replaceChildren();if(setup)$('authFields').append(field('setup_token',t.token,'password',true,'off'));$('authFields').append(field('username',t.username,'text',true,'username'),field('password',t.password,'password',true,setup?'new-password':'current-password'));if(setup)$('authFields').append(field('confirm',t.confirm,'password',true,'new-password'));}
+function renderPanel(){const t=tr();$('authbox').classList.add('hidden');$('shell').classList.remove('hidden');$('logout').classList.remove('hidden');$('logout').textContent=t.logout;$('modeBadge').textContent=t.preview;$('navigation').replaceChildren();for(const section of sections){const b=document.createElement('button');b.type='button';b.className='nav'+(active===section.id?' active':'');b.textContent=t.sections[section.id];b.addEventListener('click',()=>{active=section.id;renderPanel()});$('navigation').appendChild(b)}$('sectionTitle').textContent=t.sections[active];$('sectionHint').textContent=t.hints[active];$('fields').replaceChildren();$('configActions').classList.toggle('hidden',active==='modes'||active==='security');$('saveConfig').textContent=t.saveConfig;$('securityArea').classList.toggle('hidden',active!=='security');if(active==='security'){$('labelNewUsername').textContent=t.newUsername;$('labelCurrentPassword').textContent=t.currentPassword;$('labelNewPassword').textContent=t.newPassword;$('labelConfirmPassword').textContent=t.confirmPassword;$('saveCredentials').textContent=t.saveCredentials;status($('status'),'');return}
+const section=sections.find(s=>s.id===active);for(const key of section.keys){const wrap=document.createElement('div');wrap.className='field';const label=document.createElement('label');label.textContent=t.fields[key]||key;const input=document.createElement(
+ (key==='language'&&active==='dashboard')||(active==='mqtt'&&key==='tls')?'select':'input'
+);
+if(input.tagName==='SELECT'){
+ for(const [value,name] of (active==='mqtt'?[['false',lang==='it'?'No':'No'],['true',lang==='it'?'Sì':'Yes']]:[['it','Italiano'],['en','English']])){
+  const option=document.createElement('option');
+  option.value=value;
+  option.textContent=name;
+  input.appendChild(option);
+ }
+}else{
+ input.type=active==='mqtt'&&key==='password'?'password':active==='mqtt'&&key==='clear_password'?'checkbox':'text';
+ if(active==='mqtt'&&key==='port')input.type='number';
+}
+if(active==='mqtt'&&key==='clear_password'){
+ input.style.width='auto';
+ input.style.height='auto';
+ input.style.margin='0';
+ input.style.flex='none';
+ wrap.style.display='flex';
+ wrap.style.flexDirection='row-reverse';
+ wrap.style.justifyContent='flex-end';
+ wrap.style.alignItems='center';
+ wrap.style.gap='10px';wrap.style.marginBottom='15px';
+}
+input.disabled=(active==='modes');input.dataset.key=key;let val=config[active]?.[key];if(active==='modes')val=typeof val==='boolean'?(val?t.yes:t.no):t.unknown;if(active==='mqtt'&&key==='password'){val='';input.placeholder=config.mqtt?.password_set?(lang==='it'?'Password già impostata':'Password already set'):'';input.autocomplete='new-password'}if(active==='mqtt'&&key==='clear_password'){input.checked=false;input.style.width='auto'}else{input.value=val==null?'':String(val)}wrap.append(label,input);
+if(active==='images'){
+ const sizes={
+  banner:'2167 × 726 px · 1.2 MB',
+  logo:'300 × 120 px · 16 KB',
+  repeater:'473 × 842 px · 316 KB'
+ };
+ if(sizes[key]){
+  const hint=document.createElement('small');
+  hint.textContent=(lang==='it'?'Dimensioni consigliate':'Recommended dimensions')+': '+sizes[key];
+  hint.style.opacity='0.75';
+  hint.style.fontSize='12px';
+  wrap.appendChild(hint);
+ }
+}
+$('fields').appendChild(wrap)}status($('status'),Object.keys(config).length?t.ready:t.offline,!Object.keys(config).length)}
+function render(){document.documentElement.lang=lang;const t=tr();$('subtitle').textContent=t.subtitle;$('notice').textContent=t.notice;$('footer').textContent=t.footer;if(authenticated)renderPanel();else renderAuth()}
+async function api(path,options={}){const response=await fetch('/api/admin/'+path,{credentials:'same-origin',cache:'no-store',...options});let data={};try{data=await response.json()}catch(_){/* no JSON */}if(!response.ok)throw new Error(data.error||data.message||'HTTP '+response.status);return data}
+async function post(path,data,withCsrf=false){const headers={'Content-Type':'application/json'};if(withCsrf)headers['X-CSRF-Token']=csrf;return api(path,{method:'POST',headers,body:JSON.stringify(data)})}
+async function loadConfig(){try{const response=await fetch('/api/config',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);config=await response.json();const privateConfig=await api('config');config.paths=privateConfig.paths;const mqttResponse=await api('mqtt');config.mqtt=mqttResponse.mqtt;const preferred=config.dashboard?.language;if(preferred==='it'||preferred==='en'){lang=preferred;$('language').value=lang}}catch(e){console.info('Config unavailable:',e.message);config={}}}
+async function refreshSession(){const state=await api('session');configured=!!state.configured;authenticated=!!state.authenticated;csrf=state.csrf_token||'';if(authenticated){await loadConfig();renderPanel()}else showAuth(configured?'login':'setup');render()}
+$('language').addEventListener('change',e=>{lang=e.target.value;render()});
+$('authForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('authSubmit');button.disabled=true;status($('authStatus'),'');const setup=authMode==='setup',username=$('username').value,password=$('password').value;if(setup&&password!==$('confirm').value){status($('authStatus'),tr().mismatch,true);button.disabled=false;return}try{if(setup){await post('setup',{setup_token:$('setup_token').value,username,password});showAuth('login');status($('authStatus'),tr().created)}else{await post('login',{username,password});await refreshSession()}}catch(err){status($('authStatus'),err.message||tr().error,true)}finally{button.disabled=false}});
+$('logout').addEventListener('click',async()=>{try{await post('logout',{},true);showAuth('login');status($('authStatus'),'')}catch(err){status($('status'),err.message,true)}});
+$('saveConfig').addEventListener('click',async()=>{
+ const section=active;
+ if(section==='modes'||section==='security')return;
+ const changes={};
+ for(const input of $('fields').querySelectorAll('input[data-key],select[data-key]')){
+  if(section==='mqtt'&&input.dataset.key==='clear_password')changes.clear_password=input.checked;
+  else if(section==='mqtt'&&input.dataset.key==='tls')changes.tls=input.value==='true';
+  else if(section==='mqtt'&&input.dataset.key==='password'&&!input.value)continue;
+  else changes[input.dataset.key]=input.value;
+ }
+ const button=$('saveConfig');
+ button.disabled=true;
+ status($('status'),'');
+ try{
+  if(section==='mqtt')await post('mqtt',changes,true);else await post('config',{[section]:changes},true);
+  await loadConfig();
+  renderPanel();
+  status($('status'),tr().configSaved);
+ }catch(err){
+  status($('status'),err.message||tr().error,true);
+ }finally{
+  button.disabled=false;
+ }
+});
+$('credentialsForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('saveCredentials');button.disabled=true;status($('status'),'');const new_username=$('new_username').value,current_password=$('current_password').value,new_password=$('new_password').value,confirm=$('confirm_password').value;if(new_password!==confirm){status($('status'),tr().mismatch,true);button.disabled=false;return}try{await post('credentials',{new_username,current_password,new_password:new_password||null},true);$('credentialsForm').reset();showAuth('login');status($('authStatus'),tr().credentialsChanged)}catch(err){status($('status'),err.message||tr().error,true)}finally{button.disabled=false}});
+(async()=>{if(location.protocol!=='https:'){status($('authStatus'),'HTTPS required',true);$('authForm').querySelector('button').disabled=true;showAuth('login');return}try{await refreshSession()}catch(err){showAuth('login');status($('authStatus'),err.message,true)}})();
+</script>
+</body></html>

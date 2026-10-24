@@ -145,6 +145,16 @@ La consegna delle notifiche richiede la connettività verso Telegram e dipende d
 | `mmdvm-mqtt-collector.service` | Raccolta eventi MQTT |
 | `mmdvm-telegram-bot.service` | Bot notifiche Telegram |
 
+### Conservazione automatica degli eventi SQLite
+
+Il collector MQTT conserva gli eventi nel database `data/events.sqlite3` per **48 ore**. All'avvio e una volta al giorno, dopo la mezzanotte locale (entro circa un minuto), elimina automaticamente gli eventi più vecchi di 48 ore. La pulizia è integrata nel collector esistente: **non richiede altri servizi o timer systemd**. Il database e le configurazioni non vengono eliminati. La manutenzione usa un checkpoint WAL non bloccante; il file SQLite può mantenere spazio già allocato, riutilizzandolo per nuovi eventi.
+
+Per verificare l'ultima pulizia:
+
+```bash
+journalctl -u mmdvm-mqtt-collector --no-pager | grep 'SQLite cleanup'
+```
+
 ### Diagnostica
 
 Verifica lo stato dei servizi:
@@ -313,6 +323,16 @@ Delivery requires connectivity to Telegram and depends on the MQTT events receiv
 | `mmdvm-dashboard-mqtt.service` | Web/API backend |
 | `mmdvm-mqtt-collector.service` | MQTT event collector |
 | `mmdvm-telegram-bot.service` | Telegram notification bot |
+
+### Automatic SQLite event retention
+
+The MQTT collector retains events in `data/events.sqlite3` for **48 hours**. On startup and once per local calendar day after midnight (within approximately one minute), it automatically deletes events older than 48 hours. Cleanup runs inside the existing collector: **no additional systemd service or timer is needed**. The database and configuration files are preserved. Maintenance uses a non-blocking WAL checkpoint; SQLite may retain previously allocated disk space for reuse.
+
+To inspect the most recent cleanup:
+
+```bash
+journalctl -u mmdvm-mqtt-collector --no-pager | grep 'SQLite cleanup'
+```
 
 ### Troubleshooting
 

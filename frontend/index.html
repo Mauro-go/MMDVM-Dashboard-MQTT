@@ -331,6 +331,17 @@ header {
     min-height: 0;
 }
 
+.qrz-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.qrz-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+}
+
 /* LIVE */
 
 .live-card {
@@ -1119,6 +1130,35 @@ async function loadStatus() {
     }
 }
 
+function qrzCallsign(value) {
+    const call = String(value ?? "").trim().toUpperCase();
+    if (!/^[A-Z0-9]{1,4}[0-9][A-Z0-9]{1,5}(?:-[0-9]{1,2})?$/.test(call)) {
+        return null;
+    }
+    return call.replace(/-[0-9]{1,2}$/, "");
+}
+
+function qrzLink(value) {
+    const call = qrzCallsign(value);
+    if (!call) return null;
+
+    const link = document.createElement("a");
+    link.className = "qrz-link";
+    link.href = "https://www.qrz.com/db/" + encodeURIComponent(call);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = String(value);
+    link.title = "QRZ.com: " + call;
+    return link;
+}
+
+function setLiveCallsign(element, value) {
+    element.replaceChildren();
+    const link = qrzLink(value);
+    if (link) element.appendChild(link);
+    else element.textContent = String(value ?? "");
+}
+
 async function loadLive() {
     try {
         const r = await fetch("/api/live", {cache:"no-store"});
@@ -1145,14 +1185,14 @@ async function loadLive() {
         indicator.textContent = "● LIVE";
 
         if (e.mode === "DMR") {
-            callsign.textContent = e.callsign || e.source;
+            setLiveCallsign(callsign, e.callsign || e.source);
             detail.textContent =
                 "ID " + e.source + (e.name ? " · " + e.name : "");
         } else if (e.mode === "FM") {
             callsign.textContent = t("fm_analog");
             detail.textContent = t("repeater_busy");
         } else {
-            callsign.textContent = e.source || e.mode;
+            setLiveCallsign(callsign, e.source || e.mode);
             detail.textContent = e.destination || "";
         }
 
@@ -1332,6 +1372,22 @@ function renderHeard() {
             <td>${rssiText}</td>
             <td>${lossText}</td>
         `;
+
+        const sourceCell = tr.querySelector("td.source");
+        if (sourceCell) {
+            const value = e.mode === "DMR" && e.callsign
+                ? e.callsign : e.source;
+            const link = qrzLink(value);
+
+            if (link) {
+                if (e.mode === "DMR" && e.callsign) {
+                    const first = sourceCell.querySelector("div");
+                    if (first) first.replaceChildren(link);
+                } else {
+                    sourceCell.replaceChildren(link);
+                }
+            }
+        }
 
         tbody.appendChild(tr);
     }

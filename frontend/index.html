@@ -809,6 +809,20 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 </style>
+
+<style>
+/* FIX DEFINITIVO SISTEMA */
+.topgrid > .card {
+    height: auto !important;
+    min-height: 200px !important;
+    overflow: visible !important;
+}
+
+.system-footer {
+    margin-top: 12px !important;
+}
+</style>
+
 </head>
 
 <body>
@@ -1288,29 +1302,6 @@ function renderHeard() {
 
         const modeClass = "mode-" + e.mode;
 
-        // Link QRZ: usa il nominativo base, senza suffissi /...
-        const qrzLink = (value) => {
-            const text = String(value ?? "").trim();
-            const base = text.split("/")[0].trim().toUpperCase();
-
-            if (!/^[A-Z0-9]{3,12}$/.test(base) ||
-                !/[A-Z]/.test(base) ||
-                !/[0-9]/.test(base)) {
-                return text;
-            }
-
-            const safeText = text.replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;");
-
-            return `<a href="https://www.qrz.com/db/${encodeURIComponent(base)}"
-                       target="_blank" rel="noopener noreferrer"
-                       style="color:inherit;text-decoration:none"
-                       onmouseover="this.style.textDecoration='underline'"
-                       onmouseout="this.style.textDecoration='none'"
-                    >${safeText}</a>`;
-        };
-
         tr.innerHTML = `
             <td><span class="muted">${e.date}</span>&nbsp;&nbsp;${e.time}</td>
 
@@ -1324,14 +1315,12 @@ function renderHeard() {
 
             <td class="source">
                 ${
-                    (e.mode === "DMR" || e.mode === "D-Star") && e.callsign
-                    ? `<div>${qrzLink(e.callsign)}</div>
+                    e.mode === "DMR" && e.callsign
+                    ? `<div>${e.callsign}</div>
                        <div class="muted" style="font-size:10px;font-weight:normal">
                            ${e.source}${e.name ? " · " + e.name : ""}
                        </div>`
-                    : e.callsign
-                      ? qrzLink(e.callsign)
-                      : qrzLink(e.source)
+                    : e.source
                 }
             </td>
 
@@ -1403,8 +1392,17 @@ setInterval(loadServices,15000);
 </script>
 
 
-</body>
-</html>
+<div id="iv3scp-github-credit"
+     style="margin:24px auto 12px;padding:12px 10px;
+            text-align:center;color:#8294a7;font-size:12px;
+            border-top:1px solid rgba(120,150,175,.18);">
+  MMDVM Dashboard by IV3SCP ·
+  <a href="https://github.com/Mauro-go/MMDVM-Dashboard"
+     target="_blank" rel="noopener noreferrer"
+     style="color:#5ca9ff;text-decoration:none;">GitHub ↗</a>
+</div>
+
+
 
 <style>
 /* Correzione finale altezza riquadri TOP */
@@ -1737,3 +1735,14 @@ setInterval(loadServices,15000);
     stroke-width: 2.2 !important;
 }
 </style>
+
+<style>
+/* FIX: impedisce al footer SISTEMA di sovrapporsi ad ATTIVITÀ */
+.topgrid > .card {
+    height: auto !important;
+    min-height: 170px !important;
+}
+</style>
+
+</body>
+</html>

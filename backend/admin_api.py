@@ -128,7 +128,7 @@ def _no_cache(response):
 def admin_page():
     """Serve the admin login and interface from a private directory."""
     return send_file(
-        str(Path(__file__).resolve().parent.parent / "admin" / "admin.html"),
+        "/opt/mmdvm-dashboard-mqtt/admin/admin.html",
         mimetype="text/html"
     )
 
@@ -256,6 +256,127 @@ def admin_mqtt():
         current_app.logger.exception("MQTT settings save failed")
         return _reply("MQTT settings save failed", 500)
     return jsonify({"ok": True, "mqtt": result, "message": "MQTT settings saved"})
+
+
+
+@admin_bp.route("/telegram", methods=["GET", "POST"])
+def admin_telegram():
+    failure = _require_auth()
+    if failure:
+        return failure
+
+    from telegram_settings import public, save
+
+    if request.method == "GET":
+        try:
+            return jsonify({"ok": True, "telegram": public()})
+        except Exception:
+            current_app.logger.exception("Telegram settings read failed")
+            return _reply("Telegram settings unavailable", 500)
+
+    failure = _require_csrf()
+    if failure:
+        return failure
+
+    if not _same_origin():
+        return _reply("Invalid request origin", 403)
+
+    if request.content_length is None or request.content_length > 8192:
+        return _reply("Invalid request size", 413)
+
+    data = _json()
+    if data is None:
+        return _reply("Invalid JSON data", 400)
+
+    try:
+        result = save(data)
+    except ValueError as exc:
+        return _reply(str(exc), 400)
+    except Exception:
+        current_app.logger.exception("Telegram settings save failed")
+        return _reply("Telegram settings save failed", 500)
+
+    return jsonify({
+        "ok": True,
+        "telegram": result,
+        "message": "Telegram settings saved"
+    })
+
+
+
+@admin_bp.route("/telegram/test", methods=["POST"])
+def admin_telegram_test():
+    """Invia un messaggio di prova al canale Telegram configurato."""
+    failure = _require_auth()
+    if failure:
+        return failure
+
+    failure = _require_csrf()
+    if failure:
+        return failure
+
+    if not _same_origin():
+        return _reply("Invalid request origin", 403)
+
+    if request.content_length is None or request.content_length > 1024:
+        return _reply("Invalid request size", 413)
+
+    data = _json()
+    if data is None or data:
+        return _reply("Invalid JSON data", 400)
+
+    from telegram_settings import load
+
+    try:
+        settings = load()
+        token = settings.get("bot_token", "")
+        chat_id = settings.get("chat_id", "")
+
+        if not token or not chat_id:
+            return _reply("Telegram token or chat ID not configured", 400)
+
+        import json
+        import urllib.request
+        import urllib.error
+
+        message = (
+            "📡 MMDVM Dashboard\n"
+            "✅ Messaggio di prova Telegram\n"
+            "Connessione al canale verificata."
+        )
+
+        payload = json.dumps({
+            "chat_id": chat_id,
+            "text": message
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.telegram.org/bot" + token + "/sendMessage",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req, timeout=10) as response:
+            result = json.loads(response.read(65536).decode("utf-8"))
+
+        if not result.get("ok"):
+            return _reply("Telegram rejected test message", 502)
+
+        return jsonify({
+            "ok": True,
+            "message": "Telegram test message sent successfully"
+        })
+
+    except urllib.error.HTTPError as exc:
+        current_app.logger.warning(
+            "Telegram test rejected with HTTP %s", exc.code
+        )
+        return _reply("Telegram API returned HTTP " + str(exc.code), 502)
+
+    except Exception:
+        current_app.logger.exception("Telegram test failed")
+        return _reply("Telegram test failed", 502)
 
 
 @admin_bp.route("/config", methods=["GET"])

@@ -7,6 +7,27 @@
 :root{--bg:#0b1825;--panel:#101e2b;--panel2:#132331;--border:#263b4c;--text:#f3f6f9;--muted:#8da9c0;--blue:#4ca1ff;--green:#48e69a}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 75% 10%,rgba(43,111,160,.08),transparent 28%),var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
 .page{max-width:1500px;margin:auto;padding:28px 32px 40px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.topbar h1{margin:0;font-size:27px}.sub{font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:6px}.actions{display:flex;gap:10px;align-items:center}.pill{padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text)}.shell{display:grid;grid-template-columns:235px minmax(0,1fr);gap:22px}.sidebar,.panel,.authbox{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}.sidebar{align-self:start}.nav{width:100%;display:block;text-align:left;background:transparent;border:0;border-radius:8px;color:var(--muted);padding:12px 13px;cursor:pointer;font-size:14px}.nav:hover,.nav.active{background:#203b54;color:#fff}.panel{min-height:500px}.panel h2,.authbox h2{margin:0 0 8px;font-size:21px}.hint{color:var(--muted);font-size:13px;line-height:1.55;margin:0 0 20px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field label{font-size:12px;color:var(--muted)}.field input{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font:inherit}.field input:disabled{opacity:.85}.field input:focus{outline:1px solid var(--blue)}.notice{padding:12px 15px;border:1px solid #365571;background:#132b40;border-radius:8px;color:#c4deef;font-size:13px;line-height:1.6;margin-bottom:20px}.status{margin-top:18px;color:var(--muted);font-size:13px;white-space:pre-wrap}.status.error{color:#ff9f9f}.status.success{color:var(--green)}.footer{margin-top:18px;color:var(--muted);font-size:12px}.hidden{display:none!important}.authbox{max-width:510px;margin:25px auto}.authbox form{display:grid;gap:15px}.btn{background:#236eb4;border:1px solid #388bd4;color:white;border-radius:8px;padding:11px 15px;font:inherit;cursor:pointer}.btn:hover{background:#3081c9}.btn:disabled{opacity:.6;cursor:wait}.secondary{background:var(--panel2)}.field input:disabled{cursor:not-allowed}.full{grid-column:1/-1}@media(max-width:800px){.page{padding:18px}.shell{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.fields{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}
+
+/* Telegram Bot: layout dedicato, senza effetti sulle altre sezioni */
+#fields.telegram-layout{display:flex;flex-direction:column;gap:18px}
+.telegram-card{border:1px solid var(--border);background:var(--panel2);border-radius:12px;padding:18px;min-width:0}
+.telegram-card h3{font-size:15px;margin:0 0 15px;color:var(--text)}
+.telegram-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 20px;align-items:start}
+.telegram-grid .field{min-width:0}
+.telegram-grid .field input:not([type=checkbox]),.telegram-grid .field select{width:100%;min-width:0;padding:11px 12px;background:#0d1d2b;color:var(--text);border:1px solid #365268;border-radius:8px;font:inherit;min-height:44px}
+.telegram-grid .field select{color-scheme:dark;max-width:100%}
+.telegram-grid .field select option{background:#0d1d2b;color:#f3f6f9}
+.telegram-grid .field label{font-size:13px}
+.telegram-check{display:inline-flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:36px;cursor:pointer;color:var(--text);font-size:13px}
+.telegram-check input[type=checkbox]{appearance:auto;width:17px!important;height:17px!important;min-width:17px;flex:0 0 17px;margin:0;accent-color:var(--blue);cursor:pointer}
+.telegram-check span{line-height:1.4}
+.telegram-options{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.telegram-options .telegram-check{min-width:90px}
+.telegram-span{grid-column:1/-1}
+.telegram-card .telegram-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.telegram-test-heading{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:18px;margin:0!important}
+#telegramTestButton{width:auto;display:inline-block;margin:0;font-weight:normal;white-space:normal}
+@media(max-width:700px){.telegram-grid{grid-template-columns:1fr}.telegram-card{padding:14px}}
 </style>
 </head>
 <body>
@@ -16,6 +37,16 @@
 <section class="authbox hidden" id="authbox"><h2 id="authTitle"></h2><p class="hint" id="authHint"></p><form id="authForm" autocomplete="on"><div id="authFields" class="fields"></div><button class="btn" type="submit" id="authSubmit"></button></form><div class="status" id="authStatus" role="status" aria-live="polite"></div></section>
 <div class="shell hidden" id="shell"><nav class="sidebar" id="navigation" aria-label="Administration"></nav><main class="panel"><h2 id="sectionTitle"></h2><p class="hint" id="sectionHint"></p><div class="fields" id="fields"></div><div id="securityArea" class="hidden"><form id="credentialsForm" class="fields" autocomplete="off"><div class="field"><label for="new_username" id="labelNewUsername"></label><input id="new_username" name="new_username" required autocomplete="username"></div><div class="field"><label for="current_password" id="labelCurrentPassword"></label><input id="current_password" type="password" name="current_password" required autocomplete="current-password"></div><div class="field"><label for="new_password" id="labelNewPassword"></label><input id="new_password" type="password" name="new_password" autocomplete="new-password"></div><div class="field"><label for="confirm_password" id="labelConfirmPassword"></label><input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password"></div><div class="full"><button type="submit" class="btn" id="saveCredentials"></button></div></form></div><div id="configActions" class="hidden"><button type="button" class="btn" id="saveConfig"></button></div><div class="status" id="status" role="status" aria-live="polite"></div></main></div>
 <div class="footer" id="footer"></div>
+
+<div id="iv3scp-github-credit"
+     style="margin:24px auto 12px;padding:12px 10px;
+            text-align:center;color:#8294a7;font-size:12px;
+            border-top:1px solid rgba(120,150,175,.18);">
+  MMDVM Dashboard by IV3SCP ·
+  <a href="https://github.com/Mauro-go/MMDVM-Dashboard"
+     target="_blank" rel="noopener noreferrer"
+     style="color:#5ca9ff;text-decoration:none;">GitHub ↗</a>
+</div>
 
 </div>
 <script>
@@ -30,13 +61,14 @@ const sections=[
 {id:'links',keys:['dstar_dashboard','dstar_dashboard_label','mmdvmhost_url','mmdvmhost_label','dmrgateway_url','dmrgateway_label','ysfgateway_url','ysfgateway_label','ircddbgateway_url','ircddbgateway_label','m17gateway_url','m17gateway_label','aprsgateway_url','aprsgateway_label']},
 {id:'paths',keys:['mmdvm_dir','mmdvm_file','tg_list_dir','tg_list_file','dmr_ids']},
 {id:'mqtt',keys:['host','port','topic','username','password','tls','clear_password']},
+{id:'telegram',keys:[]},
 {id:'security',keys:[]}
 ];
 const fieldIt={title:'Titolo dashboard',language:'Lingua predefinita',callsign:'Nominativo',location:'Località',city:'Città',locator:'Locator',altitude:'Altitudine',tx_frequency:'Frequenza TX',rx_frequency:'Frequenza RX',shift:'Shift',power:'Potenza',ctcss:'CTCSS',dmr_color_code:'Color Code DMR',dmr:'DMR',dstar:'D-Star',ysf:'YSF',fm:'FM',p25:'P25',nxdn:'NXDN',m17:'M17',pocsag:'POCSAG',ax25:'AX.25',radio:'Radio',modem:'Modem',computer:'Computer',antenna:'Antenna',organization:'Organizzazione',organization_description:'Descrizione organizzazione',maintainers:'Responsabili',collaboration:'Collaborazioni',banner:'Banner',repeater:'Foto ripetitore',logo:'Logo',dstar_dashboard:'Dashboard D-Star',dstar_dashboard_label:'Nome link D-Star',mmdvmhost_url:'URL MMDVMHost',mmdvmhost_label:'Nome link MMDVMHost',dmrgateway_url:'URL DMRGateway',dmrgateway_label:'Nome link DMRGateway',ysfgateway_url:'URL YSFGateway',ysfgateway_label:'Nome link YSFGateway',ircddbgateway_url:'URL ircDDBGateway',ircddbgateway_label:'Nome link ircDDBGateway',m17gateway_url:'URL M17Gateway',m17gateway_label:'Nome link M17Gateway',aprsgateway_url:'URL APRSGateway',aprsgateway_label:'Nome link APRSGateway',mmdvm_dir:'Directory MMDVM',host:'Broker MQTT',port:'Porta',topic:'Topic',username:'Utente MQTT',password:'Nuova password MQTT',tls:'TLS',clear_password:'Elimina password salvata',mmdvm_file:'File MMDVM.ini',mmdvm_logs:'Log MMDVM',dmr_ids:'Database DMR ID',tg_list_dir:'Directory TalkGroup',tg_list_file:'File TalkGroup'};
 const fieldEn={title:'Dashboard title',language:'Default language',callsign:'Callsign',location:'Location',city:'City',locator:'Locator',altitude:'Altitude',tx_frequency:'TX frequency',rx_frequency:'RX frequency',shift:'Shift',power:'Power',ctcss:'CTCSS',dmr_color_code:'DMR color code',dmr:'DMR',dstar:'D-Star',ysf:'YSF',fm:'FM',p25:'P25',nxdn:'NXDN',m17:'M17',pocsag:'POCSAG',ax25:'AX.25',radio:'Radio',modem:'Modem',computer:'Computer',antenna:'Antenna',organization:'Organization',organization_description:'Organization description',maintainers:'Maintainers',collaboration:'Collaborations',banner:'Banner',repeater:'Repeater photo',logo:'Logo',dstar_dashboard:'D-Star dashboard',dstar_dashboard_label:'D-Star link label',mmdvmhost_url:'MMDVMHost URL',mmdvmhost_label:'MMDVMHost link label',dmrgateway_url:'DMRGateway URL',dmrgateway_label:'DMRGateway link label',ysfgateway_url:'YSFGateway URL',ysfgateway_label:'YSFGateway link label',ircddbgateway_url:'ircDDBGateway URL',ircddbgateway_label:'ircDDBGateway link label',m17gateway_url:'M17Gateway URL',m17gateway_label:'M17Gateway link label',aprsgateway_url:'APRSGateway URL',aprsgateway_label:'APRSGateway link label',mmdvm_dir:'MMDVM directory',host:'MQTT broker',port:'Port',topic:'Topic',username:'MQTT username',password:'New MQTT password',tls:'TLS',clear_password:'Clear saved password',mmdvm_file:'MMDVM.ini file',mmdvm_logs:'MMDVM logs',dmr_ids:'DMR ID database',tg_list_dir:'TalkGroup directory',tg_list_file:'TalkGroup file'};
 const dict={
-it:{subtitle:'Configurazione del sistema',preview:'AMMINISTRAZIONE',notice:'Le impostazioni della dashboard sono modificabili. Le modalità radio sono visualizzate in sola lettura.',footer:'Area amministrativa MMDVM Dashboard · Connessione HTTPS richiesta',setupTitle:'Prima configurazione',setupHint:'Inserisci il token di attivazione conservato sul server e scegli le credenziali amministrative. Il token verrà utilizzato una sola volta.',loginTitle:'Accesso amministratore',loginHint:'Accedi con le credenziali scelte durante la prima configurazione.',setup:'Crea amministratore',login:'Accedi',logout:'Esci',token:'Token di attivazione',username:'Nome utente',password:'Password',confirm:'Conferma password',newUsername:'Nome utente nuovo (o attuale)',currentPassword:'Password attuale',newPassword:'Nuova password (lascia vuoto per non cambiarla)',confirmPassword:'Conferma nuova password',saveCredentials:'Aggiorna credenziali',saveConfig:'Salva modifiche',configSaved:'Configurazione salvata correttamente.',ready:'Dati caricati da /api/config.',offline:'Impossibile caricare i dati della dashboard.',credentialsChanged:'Credenziali aggiornate. Effettua nuovamente il login.',created:'Amministratore creato. Ora effettua il login.',mismatch:'Le password non coincidono.',loading:'Caricamento…',error:'Operazione non riuscita',yes:'Attivo',no:'Disattivo',unknown:'Non disponibile',sections:{dashboard:'Generale',repeater:'Ripetitore',modes:'Modalità radio',hardware:'Hardware',station:'Stazione e organizzazione',images:'Immagini',links:'Collegamenti',paths:'Percorsi dei file',mqtt:'MQTT',security:'Sicurezza e accesso'},hints:{dashboard:'Titolo e lingua predefinita della dashboard.',repeater:'Dati identificativi e frequenze del ripetitore.',modes:'Stato effettivo letto da MMDVM.ini. Non modificabile da questa pagina.',hardware:'Apparati e antenna installati.',station:'Organizzazione, responsabili e collaborazioni.',images:'Percorsi delle immagini utilizzate dalla dashboard.',links:'Collegamenti a servizi esterni.',paths:'Percorsi dei file utilizzati dal backend.',mqtt:'Connessione al broker MQTT esistente. La password vuota resta invariata.',security:'Per cambiare il nome utente, inserisci quello desiderato e la password attuale. La nuova password è facoltativa.'},fields:fieldIt},
-en:{subtitle:'System configuration',preview:'ADMINISTRATION',notice:'Dashboard settings can be edited. Radio modes are read-only.',footer:'MMDVM Dashboard administration · HTTPS connection required',setupTitle:'Initial setup',setupHint:'Enter the activation token stored on the server and choose administrator credentials. The token can only be used once.',loginTitle:'Administrator login',loginHint:'Sign in using the credentials created during initial setup.',setup:'Create administrator',login:'Sign in',logout:'Log out',token:'Activation token',username:'Username',password:'Password',confirm:'Confirm password',newUsername:'New (or current) username',currentPassword:'Current password',newPassword:'New password (leave blank to keep it)',confirmPassword:'Confirm new password',saveCredentials:'Update credentials',saveConfig:'Save changes',configSaved:'Configuration saved successfully.',ready:'Data loaded from /api/config.',offline:'Unable to load dashboard data.',credentialsChanged:'Credentials updated. Please sign in again.',created:'Administrator created. Please sign in.',mismatch:'Passwords do not match.',loading:'Loading…',error:'Operation failed',yes:'Enabled',no:'Disabled',unknown:'Unavailable',sections:{dashboard:'General',repeater:'Repeater',modes:'Radio modes',hardware:'Hardware',station:'Station and organization',images:'Images',links:'Links',paths:'File paths',mqtt:'MQTT',security:'Security and access'},hints:{dashboard:'Dashboard title and default language.',repeater:'Repeater identity and frequencies.',modes:'Actual mode status read from MMDVM.ini. Not editable here.',hardware:'Installed equipment and antenna.',station:'Organization, maintainers and collaborations.',images:'Image paths used by the dashboard.',links:'Links to external services.',paths:'File paths used by the backend.',mqtt:'Connection to the existing MQTT broker. Blank password keeps the saved value.',security:'To change the username, enter the desired name and your current password. A new password is optional.'},fields:fieldEn}
+it:{subtitle:'Configurazione del sistema',preview:'AMMINISTRAZIONE',notice:'Le impostazioni della dashboard sono modificabili. Le modalità radio sono visualizzate in sola lettura.',footer:'Area amministrativa MMDVM Dashboard · Connessione HTTPS richiesta',setupTitle:'Prima configurazione',setupHint:'Inserisci il token di attivazione conservato sul server e scegli le credenziali amministrative. Il token verrà utilizzato una sola volta.',loginTitle:'Accesso amministratore',loginHint:'Accedi con le credenziali scelte durante la prima configurazione.',setup:'Crea amministratore',login:'Accedi',logout:'Esci',token:'Token di attivazione',username:'Nome utente',password:'Password',confirm:'Conferma password',newUsername:'Nome utente nuovo (o attuale)',currentPassword:'Password attuale',newPassword:'Nuova password (lascia vuoto per non cambiarla)',confirmPassword:'Conferma nuova password',saveCredentials:'Aggiorna credenziali',saveConfig:'Salva modifiche',configSaved:'Configurazione salvata correttamente.',ready:'Dati caricati da /api/config.',offline:'Impossibile caricare i dati della dashboard.',credentialsChanged:'Credenziali aggiornate. Effettua nuovamente il login.',created:'Amministratore creato. Ora effettua il login.',mismatch:'Le password non coincidono.',loading:'Caricamento…',error:'Operazione non riuscita',yes:'Attivo',no:'Disattivo',unknown:'Non disponibile',sections:{dashboard:'Generale',repeater:'Ripetitore',modes:'Modalità radio',hardware:'Hardware',station:'Stazione e organizzazione',images:'Immagini',links:'Collegamenti',paths:'Percorsi dei file',mqtt:'MQTT',telegram:'Telegram Bot',security:'Sicurezza e accesso'},hints:{dashboard:'Titolo e lingua predefinita della dashboard.',repeater:'Dati identificativi e frequenze del ripetitore.',modes:'Stato effettivo letto da MMDVM.ini. Non modificabile da questa pagina.',hardware:'Apparati e antenna installati.',station:'Organizzazione, responsabili e collaborazioni.',images:'Percorsi delle immagini utilizzate dalla dashboard.',links:'Collegamenti a servizi esterni.',paths:'Percorsi dei file utilizzati dal backend.',mqtt:'Connessione al broker MQTT esistente. La password vuota resta invariata.',telegram:'Configura le notifiche delle trasmissioni radio inviate tramite Telegram.',security:'Per cambiare il nome utente, inserisci quello desiderato e la password attuale. La nuova password è facoltativa.'},fields:fieldIt},
+en:{subtitle:'System configuration',preview:'ADMINISTRATION',notice:'Dashboard settings can be edited. Radio modes are read-only.',footer:'MMDVM Dashboard administration · HTTPS connection required',setupTitle:'Initial setup',setupHint:'Enter the activation token stored on the server and choose administrator credentials. The token can only be used once.',loginTitle:'Administrator login',loginHint:'Sign in using the credentials created during initial setup.',setup:'Create administrator',login:'Sign in',logout:'Log out',token:'Activation token',username:'Username',password:'Password',confirm:'Confirm password',newUsername:'New (or current) username',currentPassword:'Current password',newPassword:'New password (leave blank to keep it)',confirmPassword:'Confirm new password',saveCredentials:'Update credentials',saveConfig:'Save changes',configSaved:'Configuration saved successfully.',ready:'Data loaded from /api/config.',offline:'Unable to load dashboard data.',credentialsChanged:'Credentials updated. Please sign in again.',created:'Administrator created. Please sign in.',mismatch:'Passwords do not match.',loading:'Loading…',error:'Operation failed',yes:'Enabled',no:'Disabled',unknown:'Unavailable',sections:{dashboard:'General',repeater:'Repeater',modes:'Radio modes',hardware:'Hardware',station:'Station and organization',images:'Images',links:'Links',paths:'File paths',mqtt:'MQTT',telegram:'Telegram Bot',security:'Security and access'},hints:{dashboard:'Dashboard title and default language.',repeater:'Repeater identity and frequencies.',modes:'Actual mode status read from MMDVM.ini. Not editable here.',hardware:'Installed equipment and antenna.',station:'Organization, maintainers and collaborations.',images:'Image paths used by the dashboard.',links:'Links to external services.',paths:'File paths used by the backend.',mqtt:'Connection to the existing MQTT broker. Blank password keeps the saved value.',telegram:'Configure radio transmission notifications sent through Telegram.',security:'To change the username, enter the desired name and your current password. A new password is optional.'},fields:fieldEn}
 };
 const $=id=>document.getElementById(id);
 let lang='it',active='repeater',config={},configured=false,authenticated=false,csrf='',authMode='login';
@@ -47,7 +79,7 @@ function field(id,label,type='text',required=true,autocomplete='off'){
 }
 function showAuth(mode){authMode=mode;authenticated=false;csrf='';$('shell').classList.add('hidden');$('logout').classList.add('hidden');$('authbox').classList.remove('hidden');renderAuth()}
 function renderAuth(){const t=tr(),setup=authMode==='setup';$('authTitle').textContent=setup?t.setupTitle:t.loginTitle;$('authHint').textContent=setup?t.setupHint:t.loginHint;$('authSubmit').textContent=setup?t.setup:t.login;$('modeBadge').textContent=setup?t.setupTitle:t.loginTitle;$('authFields').replaceChildren();if(setup)$('authFields').append(field('setup_token',t.token,'password',true,'off'));$('authFields').append(field('username',t.username,'text',true,'username'),field('password',t.password,'password',true,setup?'new-password':'current-password'));if(setup)$('authFields').append(field('confirm',t.confirm,'password',true,'new-password'));}
-function renderPanel(){const t=tr();$('authbox').classList.add('hidden');$('shell').classList.remove('hidden');$('logout').classList.remove('hidden');$('logout').textContent=t.logout;$('modeBadge').textContent=t.preview;$('navigation').replaceChildren();for(const section of sections){const b=document.createElement('button');b.type='button';b.className='nav'+(active===section.id?' active':'');b.textContent=t.sections[section.id];b.addEventListener('click',()=>{active=section.id;renderPanel()});$('navigation').appendChild(b)}$('sectionTitle').textContent=t.sections[active];$('sectionHint').textContent=t.hints[active];$('fields').replaceChildren();$('configActions').classList.toggle('hidden',active==='modes'||active==='security');$('saveConfig').textContent=t.saveConfig;$('securityArea').classList.toggle('hidden',active!=='security');if(active==='security'){$('labelNewUsername').textContent=t.newUsername;$('labelCurrentPassword').textContent=t.currentPassword;$('labelNewPassword').textContent=t.newPassword;$('labelConfirmPassword').textContent=t.confirmPassword;$('saveCredentials').textContent=t.saveCredentials;status($('status'),'');return}
+function renderPanel(){const t=tr();$('authbox').classList.add('hidden');$('shell').classList.remove('hidden');$('logout').classList.remove('hidden');$('logout').textContent=t.logout;$('modeBadge').textContent=t.preview;$('navigation').replaceChildren();for(const section of sections){const b=document.createElement('button');b.type='button';b.className='nav'+(active===section.id?' active':'');b.textContent=t.sections[section.id];b.addEventListener('click',()=>{active=section.id;renderPanel()});$('navigation').appendChild(b)}$('sectionTitle').textContent=t.sections[active];$('sectionHint').textContent=t.hints[active];$('fields').replaceChildren();$('fields').classList.toggle('telegram-layout',active==='telegram');$('configActions').classList.toggle('hidden',active==='modes'||active==='security');$('saveConfig').textContent=t.saveConfig;$('securityArea').classList.toggle('hidden',active!=='security');if(active==='telegram'){renderTelegram();status($('status'),'');return}if(active==='security'){$('labelNewUsername').textContent=t.newUsername;$('labelCurrentPassword').textContent=t.currentPassword;$('labelNewPassword').textContent=t.newPassword;$('labelConfirmPassword').textContent=t.confirmPassword;$('saveCredentials').textContent=t.saveCredentials;status($('status'),'');return}
 const section=sections.find(s=>s.id===active);for(const key of section.keys){const wrap=document.createElement('div');wrap.className='field';const label=document.createElement('label');label.textContent=t.fields[key]||key;const input=document.createElement(
  (key==='language'&&active==='dashboard')||(active==='mqtt'&&key==='tls')?'select':'input'
 );
@@ -89,10 +121,144 @@ if(active==='images'){
  }
 }
 $('fields').appendChild(wrap)}status($('status'),Object.keys(config).length?t.ready:t.offline,!Object.keys(config).length)}
+
+const telegramLabels={
+ it:{enabled:'Abilita notifiche',bot_token:'Nuovo token del bot',clear_bot_token:'Cancella token salvato',chat_id:'ID canale/chat',modes:'Modalità radio',tg_policy:'Politica TalkGroup',all_except:'Tutti tranne esclusi',only_included:'Solo TG inclusi',tg_include:'TG inclusi (separati da virgole)',tg_exclude:'TG esclusi (sempre prioritari)',callsign_exclude:'Nominativi esclusi (separati da virgole)',exclude_time:'Escludi segnali orari',exclude_beacons:'Escludi beacon automatici',min_duration:'Durata minima (secondi)',notification_gap:'Intervallo minimo tra notifiche (secondi)',sources:'Origine traffico',rf:'Radio RF',network:'Rete',token_set:'Token già configurato: lascia vuoto per mantenerlo'},
+ en:{enabled:'Enable notifications',bot_token:'New bot token',clear_bot_token:'Clear saved token',chat_id:'Channel/chat ID',modes:'Radio modes',tg_policy:'TalkGroup policy',all_except:'All except excluded',only_included:'Only included TGs',tg_include:'Included TGs (comma separated)',tg_exclude:'Excluded TGs (always take priority)',callsign_exclude:'Excluded callsigns (comma separated)',exclude_time:'Exclude time announcements',exclude_beacons:'Exclude automatic beacons',min_duration:'Minimum duration (seconds)',notification_gap:'Minimum interval between notifications (seconds)',sources:'Traffic source',rf:'RF radio',network:'Network',token_set:'Token already configured: leave blank to keep it'}
+};
+function renderTelegram(){
+ const d=config.telegram||{},t=telegramLabels[lang],area=$('fields');
+ const titles=lang==='it'
+  ? ['Connessione Telegram','Modalità e origine','Filtri delle notifiche','Invio di prova']
+  : ['Telegram connection','Modes and source','Notification filters','Test message'];
+ function card(title){
+  const section=document.createElement('section');section.className='telegram-card';
+  const h=document.createElement('h3');h.textContent=title;
+  const grid=document.createElement('div');grid.className='telegram-grid';
+  section.append(h,grid);area.append(section);return grid;
+ }
+ function item(parent,key,kind='text',options=[]){
+  const w=document.createElement(kind==='checkbox'?'label':'div');
+  w.className=kind==='checkbox'?'telegram-check':'field';
+  let el;
+  if(kind==='select'){
+   el=document.createElement('select');
+   for(const [v,label] of options){const o=document.createElement('option');o.value=v;o.textContent=label;el.append(o)}
+   el.value=d[key]||'all_except';
+  }else{
+   el=document.createElement('input');el.type=kind;
+   if(kind==='checkbox')el.checked=!!d[key];
+   else if(kind==='number'){el.step='0.1';el.min='0';el.value=d[key]??0}
+   else if(key==='bot_token'){el.value='';el.autocomplete='new-password';el.placeholder=d.bot_token_set?t.token_set:''}
+   else if(Array.isArray(d[key]))el.value=d[key].join(', ');
+   else el.value=d[key]??'';
+  }
+  el.dataset.telegram=key;
+  if(kind==='checkbox'){
+   const caption=document.createElement('span');caption.textContent=t[key];w.append(el,caption);
+  }else{
+   const label=document.createElement('label');label.textContent=t[key];
+   const id='telegram-'+key;el.id=id;label.htmlFor=id;w.append(label,el);
+  }
+  parent.append(w);return el;
+ }
+ function multi(parent,key,values){
+  const w=document.createElement('div');w.className='field telegram-span';
+  const heading=document.createElement('label');heading.textContent=t[key];w.append(heading);
+  const options=document.createElement('div');options.className='telegram-options';
+  const selected=Array.isArray(d[key])?d[key]:[];
+  for(const value of values){
+   const line=document.createElement('label');line.className='telegram-check';
+   const cb=document.createElement('input');cb.type='checkbox';cb.dataset.telegramGroup=key;
+   cb.value=value;cb.checked=selected.includes(value);
+   const caption=document.createElement('span');caption.textContent=t[value]||value;
+   line.append(cb,caption);options.append(line);
+  }
+  w.append(options);parent.append(w);
+ }
+ const connection=card(titles[0]);
+ item(connection,'enabled','checkbox');
+ item(connection,'clear_bot_token','checkbox');
+ item(connection,'bot_token','password');item(connection,'chat_id');
+ const modes=card(titles[1]);
+ multi(modes,'modes',['DMR','D-Star','YSF','P25','NXDN','FM','M17']);
+ multi(modes,'sources',['rf','network']);
+ const filters=card(titles[2]);
+ item(filters,'tg_policy','select',[['all_except',t.all_except],['only_included',t.only_included]]);
+ item(filters,'tg_include');item(filters,'tg_exclude');item(filters,'callsign_exclude');
+ item(filters,'min_duration','number');item(filters,'notification_gap','number');
+ item(filters,'exclude_time','checkbox');item(filters,'exclude_beacons','checkbox');
+ const tests=card(titles[3]);
+ const testButton = document.createElement('button');
+ testButton.type = 'button';
+ testButton.id = 'telegramTestButton';
+ testButton.className = 'btn';
+ testButton.textContent = lang === 'it'
+   ? 'Invia messaggio di prova'
+   : 'Send test message';
+
+
+ testButton.addEventListener('click', async () => {
+   testButton.disabled = true;
+   const originalText = testButton.textContent;
+   testButton.textContent = lang === 'it'
+     ? 'Invio in corso...'
+     : 'Sending...';
+
+   try {
+     const response = await fetch('/api/admin/telegram/test', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: {
+         'Content-Type': 'application/json',
+         'X-CSRF-Token': csrf
+       },
+       body: JSON.stringify({})
+     });
+
+     const result = await response.json();
+
+     if (!response.ok || !result.ok) {
+       throw new Error(result.error || result.message || 'Telegram test failed');
+     }
+
+     alert(lang === 'it'
+       ? 'Messaggio Telegram inviato correttamente!'
+       : 'Telegram test message sent successfully!');
+   } catch (error) {
+     alert((lang === 'it' ? 'Errore Telegram: ' : 'Telegram error: ') + error.message);
+   } finally {
+     testButton.disabled = false;
+     testButton.textContent = originalText;
+   }
+ });
+
+ const testHeading=tests.parentElement.querySelector('h3');
+ testHeading.classList.add('telegram-test-heading');
+ testHeading.append(testButton);
+}
+async function saveTelegram(){
+ const data={},inputs=$('fields').querySelectorAll('[data-telegram]');
+ for(const el of inputs){
+  const key=el.dataset.telegram;
+  if(key==='bot_token'&&!el.value)continue;
+  if(['enabled','exclude_time','exclude_beacons','clear_bot_token'].includes(key))data[key]=el.checked;
+  else if(['min_duration','notification_gap'].includes(key))data[key]=Number(el.value);
+  else if(['tg_include','tg_exclude'].includes(key))data[key]=el.value.split(/[\s,;]+/).filter(Boolean).map(Number);
+  else if(key==='callsign_exclude')data[key]=el.value.split(/[\s,;]+/).filter(Boolean);
+  else data[key]=el.value;
+ }
+ for(const key of ['modes','sources'])data[key]=[...$('fields').querySelectorAll('[data-telegram-group="'+key+'"]:checked')].map(x=>x.value);
+ const button=$('saveConfig');button.disabled=true;status($('status'),'');
+ try{await post('telegram',data,true);const r=await api('telegram');config.telegram=r.telegram;renderPanel();status($('status'),tr().configSaved)}
+ catch(err){status($('status'),err.message||tr().error,true)}
+ finally{button.disabled=false}
+}
+
 function render(){document.documentElement.lang=lang;const t=tr();$('subtitle').textContent=t.subtitle;$('notice').textContent=t.notice;$('footer').textContent=t.footer;if(authenticated)renderPanel();else renderAuth()}
 async function api(path,options={}){const response=await fetch('/api/admin/'+path,{credentials:'same-origin',cache:'no-store',...options});let data={};try{data=await response.json()}catch(_){/* no JSON */}if(!response.ok)throw new Error(data.error||data.message||'HTTP '+response.status);return data}
 async function post(path,data,withCsrf=false){const headers={'Content-Type':'application/json'};if(withCsrf)headers['X-CSRF-Token']=csrf;return api(path,{method:'POST',headers,body:JSON.stringify(data)})}
-async function loadConfig(){try{const response=await fetch('/api/config',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);config=await response.json();const privateConfig=await api('config');config.paths=privateConfig.paths;const mqttResponse=await api('mqtt');config.mqtt=mqttResponse.mqtt;const preferred=config.dashboard?.language;if(preferred==='it'||preferred==='en'){lang=preferred;$('language').value=lang}}catch(e){console.info('Config unavailable:',e.message);config={}}}
+async function loadConfig(){try{const response=await fetch('/api/config',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);config=await response.json();const privateConfig=await api('config');config.paths=privateConfig.paths;const mqttResponse=await api('mqtt');config.mqtt=mqttResponse.mqtt;try{const telegramResponse=await api('telegram');config.telegram=telegramResponse.telegram}catch(e){console.warn('Telegram settings unavailable:',e.message);config.telegram={};}const preferred=config.dashboard?.language;if(preferred==='it'||preferred==='en'){lang=preferred;$('language').value=lang}}catch(e){console.info('Config unavailable:',e.message);config={}}}
 async function refreshSession(){const state=await api('session');configured=!!state.configured;authenticated=!!state.authenticated;csrf=state.csrf_token||'';if(authenticated){await loadConfig();renderPanel()}else showAuth(configured?'login':'setup');render()}
 $('language').addEventListener('change',e=>{lang=e.target.value;render()});
 $('authForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('authSubmit');button.disabled=true;status($('authStatus'),'');const setup=authMode==='setup',username=$('username').value,password=$('password').value;if(setup&&password!==$('confirm').value){status($('authStatus'),tr().mismatch,true);button.disabled=false;return}try{if(setup){await post('setup',{setup_token:$('setup_token').value,username,password});showAuth('login');status($('authStatus'),tr().created)}else{await post('login',{username,password});await refreshSession()}}catch(err){status($('authStatus'),err.message||tr().error,true)}finally{button.disabled=false}});
@@ -100,6 +266,7 @@ $('logout').addEventListener('click',async()=>{try{await post('logout',{},true);
 $('saveConfig').addEventListener('click',async()=>{
  const section=active;
  if(section==='modes'||section==='security')return;
+ if(section==='telegram'){await saveTelegram();return;}
  const changes={};
  for(const input of $('fields').querySelectorAll('input[data-key],select[data-key]')){
   if(section==='mqtt'&&input.dataset.key==='clear_password')changes.clear_password=input.checked;

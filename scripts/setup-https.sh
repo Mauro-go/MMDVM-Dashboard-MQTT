@@ -41,8 +41,12 @@ if grep -Eq '(^|[[:space:]])(\*:443|\[[^]]+\]:443|[0-9a-fA-F.:]+:443)([[:space:]
 fi
 [[ ! -e $CONF && ! -L $CONF ]] || die 'HTTPS site configuration already exists.' 'La configurazione del sito HTTPS esiste già.'
 [[ ! -e $CERTDIR && ! -L $CERTDIR ]] || die 'Certificate directory already exists.' 'La directory dei certificati esiste già.'
-if command -v ss >/dev/null && ss -H -ltn 'sport = :443' | grep -q .; then
-    die 'Port 443 is already in use.' 'La porta 443 è già occupata.'
+if command -v ss >/dev/null && ss -H -ltnp 'sport = :443' | grep -q .; then
+    if ss -H -ltnp 'sport = :443' | grep -q 'users:(("apache2"'; then
+        msg 'Apache already listens on port 443; reusing it.' 'Apache ascolta già sulla porta 443; verrà riutilizzata.'
+    else
+        die 'Port 443 is occupied by another service.' 'La porta 443 è occupata da un altro servizio.'
+    fi
 fi
 CREATED=0
 cleanup() {
@@ -57,7 +61,7 @@ cleanup() {
     exit "$rc"
 }
 trap cleanup EXIT
-mkdir -m 0700 -- "$CERTDIR"
+install -d -m 0700 -- "$CERTDIR"
 CREATED=1
 openssl req -x509 -nodes -newkey rsa:3072 -sha256 -days 825 \
     -keyout "$CERTDIR/server.key" -out "$CERTDIR/server.crt" \

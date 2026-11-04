@@ -91,13 +91,13 @@ DETECTED_NODE=$(awk -F= '
 DETECTED_NODE=${DETECTED_NODE:-N0CALL}
 while :; do
   ask NODE_ID 'Identificativo ponte (node_id)' 'Repeater identifier (node_id)' "$DETECTED_NODE"
-  NODE_ID=${NODE_ID^^}
+  NODE_ID=${NODE_ID,,}
   [[ $NODE_ID =~ ^[A-Za-z0-9_-]+$ ]] && break
   say 'node_id non valido, riprovare.' 'Invalid node_id, try again.'
 done
-say "Il prefisso deve coincidere con quello della dashboard." "The prefix must match the dashboard."
+say "Prefisso predefinito: mmdvm/<node_id>/agent/v1. Se la Dashboard esiste, inserire il prefisso ESATTO (maiuscole/minuscole contano)." "Default prefix: mmdvm/<node_id>/agent/v1. If Dashboard exists, enter its EXACT prefix (case-sensitive)."
 while :; do
-  ask TOPIC_PREFIX 'Prefisso topic MQTT' 'MQTT topic prefix' "mmdvm/$NODE_ID"
+  ask TOPIC_PREFIX 'Prefisso topic MQTT' 'MQTT topic prefix' "mmdvm/$NODE_ID/agent/v1"
   TOPIC_PREFIX=${TOPIC_PREFIX#/}; TOPIC_PREFIX=${TOPIC_PREFIX%/}
   [[ $TOPIC_PREFIX =~ ^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$ ]] && break
   say 'Prefisso non valido, riprovare.' 'Invalid prefix, try again.'

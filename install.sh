@@ -94,9 +94,9 @@ else
   DEPLOYMENT_MODE=remote
   msg 'The node ID must match the Agent configuration.' "L'identificativo nodo deve coincidere con quello dell'Agent."
   field 'Agent node ID: ' 'Identificativo nodo Agent: ' '' '^[A-Za-z0-9_.-]+$'
-  NODE_ID=${ANSWER^^}
-  msg 'The prefix must match the Agent, e.g. mmdvm/IR3ZZO.' "Il prefisso deve coincidere con quello dell'Agent, es. mmdvm/IR3ZZO."
-  field "Agent prefix [mmdvm/$NODE_ID]: " "Prefisso Agent [mmdvm/$NODE_ID]: " "mmdvm/$NODE_ID" '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$'
+  NODE_ID=${ANSWER,,}
+  msg 'Default Agent prefix: mmdvm/<node_id>/agent/v1 (lowercase).' 'Prefisso Agent predefinito: mmdvm/<node_id>/agent/v1 (minuscolo).'
+  field "Agent prefix [mmdvm/$NODE_ID/agent/v1]: " "Prefisso Agent [mmdvm/$NODE_ID/agent/v1]: " "mmdvm/$NODE_ID/agent/v1" '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$'
   AGENT_PREFIX=$ANSWER
 fi
 
@@ -472,6 +472,6 @@ msg "Active services: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector" "Servizi attiv
 msg "Telegram: manual activation after configuration." "Telegram: attivazione manuale dopo la configurazione."
 
 if [[ $DEPLOYMENT_MODE == remote ]]; then
-  msg 'Install agent/install.sh on the repeater and use the same broker, node ID and prefix.' \
-      'Installare agent/install.sh sul ripetitore con lo stesso broker, identificativo e prefisso.'
+  msg 'Install agent/install.sh on the repeater. Enter the EXACT broker, node ID and prefix shown above (case-sensitive).' \
+      'Installare agent/install.sh sul ripetitore. Inserire ESATTAMENTE broker, nodo e prefisso indicati sopra (maiuscole/minuscole contano).'
 fi

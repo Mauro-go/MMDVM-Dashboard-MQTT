@@ -464,12 +464,26 @@ trap - EXIT INT TERM
 rm -f -- "$HTTPS_RESULT_FILE"
 msg "Telegram service installed but disabled." "Servizio Telegram installato ma disabilitato."
 
-msg "Installation complete." "Installazione completata."
-msg "HTTPS address: https://$HTTPS_NAME/" "Indirizzo HTTPS: https://$HTTPS_NAME/"
-msg "Dashboard: /index.html | Administration: /api/admin/" "Dashboard: /index.html | Amministrazione: /api/admin/"
-msg "Admin setup token: $STATE/setup-token" "Token configurazione Admin: $STATE/setup-token"
-msg "Active services: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector" "Servizi attivi: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector"
-msg "Telegram: manual activation after configuration." "Telegram: attivazione manuale dopo la configurazione."
+printf '\n%s\n' '============================================================'
+msg 'MMDVM DASHBOARD MQTT - INSTALLATION COMPLETED' 'MMDVM DASHBOARD MQTT - INSTALLAZIONE COMPLETATA'
+printf '%s\n' '============================================================'
+msg "Dashboard:       https://$HTTPS_NAME/" "Dashboard:       https://$HTTPS_NAME/"
+msg "Administration:  https://$HTTPS_NAME/api/admin/" "Amministrazione: https://$HTTPS_NAME/api/admin/"
+msg 'Services: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector' 'Servizi: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector'
+msg 'Telegram: installed, disabled until configured' 'Telegram: installato, disabilitato fino alla configurazione'
+printf '\n'
+if [[ -f "$STATE/setup-token" && ! -f "$STATE/admin.json" ]]; then
+  msg 'FIRST ADMINISTRATOR ACCESS' 'PRIMO ACCESSO AMMINISTRATORE'
+  printf '%s\n' '------------------------------------------------------------'
+  printf 'Token: %s\n' "$(<"$STATE/setup-token")"
+  msg 'Save this token securely. Use it to create the Admin account.' \
+      'Conserva il token in modo sicuro. Usalo per creare l’account Admin.'
+  msg "Token file: $STATE/setup-token" "File del token: $STATE/setup-token"
+else
+  msg 'Admin setup token not displayed (already used or unavailable).' \
+      'Token iniziale non mostrato (già utilizzato o non disponibile).'
+fi
+printf '%s\n' '============================================================'
 
 if [[ $DEPLOYMENT_MODE == remote ]]; then
   msg 'Install agent/install.sh on the repeater. Enter the EXACT broker, node ID and prefix shown above (case-sensitive).' \

@@ -5,6 +5,7 @@ import glob
 import csv
 import configparser
 import config as dashboard_config
+import remote_agent  # PARSER_REMOTE_GUARD_V1
 from datetime import datetime, timezone, timedelta
 
 LOG_GLOB = dashboard_config.get_path("mmdvm_logs")
@@ -15,6 +16,8 @@ HOURS_HISTORY = 24
 
 
 def get_repeater_callsign():
+    if remote_agent.enabled():
+        return str(remote_agent.repeater_info().get("callsign") or "").strip()
     try:
         config = configparser.ConfigParser(strict=False)
         config.optionxform = str
@@ -23,6 +26,23 @@ def get_repeater_callsign():
     except Exception:
         return ""
 
+
+
+# PARSER_AGENT_RADIO_V1
+def get_fm_ctcss():
+    if remote_agent.enabled():
+        settings = remote_agent.repeater_settings()
+        return str(settings.get("ctcss") or "").strip() or None
+
+    try:
+        cfg = configparser.ConfigParser(strict=False)
+        cfg.read(dashboard_config.get_mmdvm_ini())
+        for key in ("CTCSSFrequency", "CTCSS"):
+            if cfg.has_option("FM", key):
+                return cfg.get("FM", key)
+    except (OSError, configparser.Error):
+        pass
+    return None
 
 REPEATER_CALLSIGN = get_repeater_callsign()
 
@@ -869,14 +889,7 @@ def load_live():
         age = datetime.now(timezone.utc).timestamp() - fm_start.timestamp()
 
         if 0 <= age <= LIVE_MAX_AGE:
-            ctcss = None
-
-            try:
-                cfg = configparser.ConfigParser()
-                cfg.read(dashboard_config.get_mmdvm_ini())
-                ctcss = cfg.get("FM", "CTCSSFrequency", fallback=None)
-            except Exception:
-                pass
+            ctcss = get_fm_ctcss()
 
             event = {
                 "active": True,
@@ -974,20 +987,7 @@ def load_fm_live():
     if elapsed < 0 or elapsed > LIVE_MAX_AGE:
         return None
 
-    # Legge il CTCSS dalla configurazione MMDVMHost.
-    ctcss = None
-
-    try:
-        cfg = configparser.ConfigParser()
-        cfg.read(dashboard_config.get_mmdvm_ini())
-
-        if cfg.has_section("FM"):
-            for key in ("CTCSSFrequency", "CTCSS"):
-                if cfg.has_option("FM", key):
-                    ctcss = cfg.get("FM", key)
-                    break
-    except Exception:
-        pass
+    ctcss = get_fm_ctcss()
 
     event = {
         "active": True,

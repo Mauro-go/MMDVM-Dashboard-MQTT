@@ -1109,26 +1109,26 @@ function updateClock() {
 }
 
 async function loadStatus() {
+    const badge = document.querySelector('.system-online');
+    const showOffline = () => {
+        for (const id of ['cpu','ram','disk','temp','uptime']) document.getElementById(id).textContent = '--';
+        if (badge) { badge.textContent = 'DATI NON DISPONIBILI'; badge.style.color = '#f2a65a'; }
+    };
     try {
-        const r = await fetch("/api/status");
+        const r = await fetch('/api/status', {cache:'no-store'});
+        if (!r.ok) throw new Error('Status unavailable');
         const data = await r.json();
-        const rep = data.repeater;
+        if (data.agent?.mode === 'remote' && !data.agent.online) { showOffline(); return; }
         const sys = data.system;
-
-        
-        
-        
-
-        document.getElementById("cpu").textContent = sys.cpu + "%";
-        document.getElementById("ram").textContent = sys.memory + "%";
-        document.getElementById("disk").textContent = sys.disk + "%";
-        document.getElementById("temp").textContent =
-            sys.temperature !== null ? sys.temperature.toFixed(1) + "°" : "--";
-        document.getElementById("uptime").textContent = uptime(sys.uptime);
-    } catch(e) {
-        console.error(e);
-    }
+        for (const [id,key] of [['cpu','cpu'],['ram','memory'],['disk','disk']]) {
+            document.getElementById(id).textContent = Number.isFinite(sys[key]) ? sys[key] + '%' : '--';
+        }
+        document.getElementById('temp').textContent = Number.isFinite(sys.temperature) ? sys.temperature.toFixed(1) + '°' : '--';
+        document.getElementById('uptime').textContent = Number.isFinite(sys.uptime) ? uptime(sys.uptime) : '--';
+        if (badge) { badge.textContent = data.agent?.mode === 'remote' ? 'IR3ZZO ONLINE' : 'ONLINE'; badge.style.color = '#48e69a'; }
+    } catch (error) { showOffline(); console.error(error); }
 }
+
 
 function qrzCallsign(value) {
     const call = String(value ?? "").trim().toUpperCase();

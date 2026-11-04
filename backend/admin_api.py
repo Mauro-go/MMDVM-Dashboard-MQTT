@@ -393,10 +393,15 @@ def admin_read_config():
         "dmr_ids", "tg_list_dir", "tg_list_file"
     )
 
+    # DEPLOYMENT_ADMIN_READ_V1
     return jsonify({
         "paths": {
             key: dashboard_config.get_path(key)
             for key in keys
+        },
+        "deployment": {
+            key: dashboard_config.get("deployment", key, fallback="")
+            for key in ("mode", "mmdvm_ini", "node_id", "agent_topic_prefix")
         }
     })
 

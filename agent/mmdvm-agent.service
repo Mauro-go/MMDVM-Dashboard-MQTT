@@ -1,0 +1,26 @@
+[Unit]
+Description=MMDVM read-only MQTT Agent
+Wants=network-online.target
+After=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 -B /opt/mmdvm-agent/agent.py --config /opt/mmdvm-agent/agent.json
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=multi-user.target

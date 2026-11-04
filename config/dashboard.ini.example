@@ -1,3 +1,9 @@
+[deployment]
+mode = local
+node_id =
+agent_topic_prefix =
+mmdvm_ini = /etc/MMDVM.ini
+
 [dashboard]
 language = it
 title = MMDVM Dashboard

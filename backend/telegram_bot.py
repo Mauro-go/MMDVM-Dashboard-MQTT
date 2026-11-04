@@ -24,6 +24,27 @@ from config import get_mmdvm_ini
 
 
 def repeater_callsign():
+    # TELEGRAM_REMOTE_CALLSIGN_V1
+    import config as dashboard_config
+    import remote_agent
+
+    if remote_agent.enabled():
+        call = str(
+            remote_agent.repeater_info().get("callsign") or ""
+        ).strip().upper()
+        if call and call != "MMDVM":
+            return call
+
+        call = dashboard_config.get(
+            "repeater", "callsign", ""
+        ).strip().upper()
+        if call:
+            return call
+
+        raise RuntimeError(
+            "Missing repeater callsign in remote Agent configuration"
+        )
+
     name = get_mmdvm_ini()
     cp = configparser.ConfigParser(interpolation=None, strict=False)
 

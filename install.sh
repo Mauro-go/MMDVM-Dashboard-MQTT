@@ -46,50 +46,109 @@ else
   msg "Apache will be installed." "Apache verrà installato."
 fi
 
+# Questions are grouped by deployment and broker choice; no changes before confirmation.
 CALLSIGN=
-ask "MQTT broker [127.0.0.1]: " "Broker MQTT [127.0.0.1]: "; HOST=${ANSWER:-127.0.0.1}
-ask "MQTT port [1883]: " "Porta MQTT [1883]: "; MQTT_PORT=${ANSWER:-1883}
-ask "MQTT topic [mmdvm/+/json]: " "Topic MQTT [mmdvm/+/json]: "; TOPIC=${ANSWER:-mmdvm/+/json}
-# HTTPS_INSTALL_INTEGRATION_V1
-ask "HTTPS IP address or hostname: " "Indirizzo IP o nome host HTTPS: "
-HTTPS_NAME=$ANSWER
-[[ -n "$HTTPS_NAME" && "$HTTPS_NAME" =~ ^[A-Za-z0-9._:-]+$ ]] ||
-  die "Invalid HTTPS address." "Indirizzo HTTPS non valido."
-
-# DEPLOYMENT_MODE_INSTALLER_V2
-msg "1) Local  2) Remote MQTT Agent" "1) Locale  2) Agent MQTT remoto"
-ask "Connection mode [1]: " "Modalità collegamento [1]: "
-case "${ANSWER:-1}" in
-  1) DEPLOYMENT_MODE=local ;;
-  2) DEPLOYMENT_MODE=remote ;;
-  *) die "Invalid mode." "Modalità non valida." ;;
-esac
-
 MMDVM_INI=/etc/MMDVM.ini
 NODE_ID=
 AGENT_PREFIX=
+MQTT_USER=
+MQTT_PASSWORD=
+MQTT_TLS=false
+BROKER_MODE=remote
+MOSQ_NEW=false
 
-if [[ $DEPLOYMENT_MODE == local ]]; then
-  ask "MMDVM.ini path [/etc/MMDVM.ini]: " "Percorso MMDVM.ini [/etc/MMDVM.ini]: "
-  MMDVM_INI=${ANSWER:-/etc/MMDVM.ini}
+choice() {
+  local prompt_en=$1 prompt_it=$2 valid=$3 default=$4
+  while :; do
+    ask "$prompt_en" "$prompt_it"
+    ANSWER=${ANSWER:-$default}
+    [[ $ANSWER =~ $valid ]] && return 0
+    msg 'Invalid selection. Try again.' 'Scelta non valida. Riprova.'
+  done
+}
+field() {
+  local en=$1 it=$2 default=$3 pattern=$4
+  while :; do
+    ask "$en" "$it"
+    ANSWER=${ANSWER:-$default}
+    [[ $ANSWER =~ $pattern ]] && return 0
+    msg 'Invalid value. Try again.' 'Valore non valido. Riprova.'
+  done
+}
+secret() {
+  local prompt
+  if [[ $LANGUAGE == it ]]; then prompt='Password MQTT (non visualizzata, vuota se anonimo): '; else prompt='MQTT password (hidden, blank if anonymous): '; fi
+  read -r -s -p "$prompt" MQTT_PASSWORD; printf '\n'
+}
+msg 'Dashboard connection: 1) Local MMDVM.ini  2) Remote MQTT Agent' 'Collegamento dashboard: 1) MMDVM.ini locale  2) Agent MQTT remoto'
+choice 'Connection mode [1]: ' 'Modalità collegamento [1]: ' '^[12]$' 1
+if [[ $ANSWER == 1 ]]; then
+  DEPLOYMENT_MODE=local
+  while :; do
+    field 'MMDVM.ini path [/etc/MMDVM.ini]: ' 'Percorso MMDVM.ini [/etc/MMDVM.ini]: ' /etc/MMDVM.ini '^/[^[:cntrl:]]+$'
+    MMDVM_INI=$ANSWER
+    [[ -r $MMDVM_INI ]] && break
+    msg 'File not readable. Try again.' 'File non leggibile. Riprova.'
+  done
 else
-  ask "Agent node ID: " "Identificativo nodo Agent: "
-  NODE_ID=$ANSWER
-  [[ $NODE_ID =~ ^[A-Za-z0-9_.-]+$ ]] || die "Invalid node ID." "Identificativo nodo non valido."
-  ask "Agent topic prefix [mmdvm/$NODE_ID]: " "Prefisso topic Agent [mmdvm/$NODE_ID]: "
-  AGENT_PREFIX=${ANSWER:-mmdvm/$NODE_ID}
-  [[ $AGENT_PREFIX =~ ^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$ ]] || die "Invalid Agent prefix." "Prefisso Agent non valido."
+  DEPLOYMENT_MODE=remote
+  msg 'The node ID must match the Agent configuration.' "L'identificativo nodo deve coincidere con quello dell'Agent."
+  field 'Agent node ID: ' 'Identificativo nodo Agent: ' '' '^[A-Za-z0-9_.-]+$'
+  NODE_ID=${ANSWER^^}
+  msg 'The prefix must match the Agent, e.g. mmdvm/IR3ZZO.' "Il prefisso deve coincidere con quello dell'Agent, es. mmdvm/IR3ZZO."
+  field "Agent prefix [mmdvm/$NODE_ID]: " "Prefisso Agent [mmdvm/$NODE_ID]: " "mmdvm/$NODE_ID" '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$'
+  AGENT_PREFIX=$ANSWER
 fi
 
-[[ $MQTT_PORT =~ ^[0-9]+$ ]] && ((10#$MQTT_PORT>=1 && 10#$MQTT_PORT<=65535)) || die "Invalid MQTT port." "Porta MQTT non valida."
-[[ $HOST =~ ^[A-Za-z0-9._:-]+$ ]] || die "Invalid MQTT host." "Host MQTT non valido."
-[[ -n $TOPIC && $TOPIC != *$'\n'* && $TOPIC != *$'\r'* ]] || die "Invalid MQTT topic." "Topic MQTT non valido."
-[[ $CALLSIGN =~ ^[A-Za-z0-9-]+$ ]] || die "Invalid callsign." "Nominativo non valido."
-[[ $MMDVM_INI = /* && $MMDVM_INI != *$'\n'* ]] || die "Invalid MMDVM.ini path." "Percorso MMDVM.ini non valido."
-# MMDVM_INI_LOCAL_CHECK_V1
-if [[ $DEPLOYMENT_MODE == local ]]; then
-  [[ -r $MMDVM_INI ]] || die "MMDVM.ini is not readable." "MMDVM.ini non leggibile."
+msg 'Broker location: 1) Local to dashboard  2) Remote/existing broker' 'Posizione broker: 1) Locale sulla dashboard  2) Broker remoto/esistente'
+choice 'Broker location [2]: ' 'Posizione broker [2]: ' '^[12]$' 2
+if [[ $ANSWER == 1 ]]; then
+  BROKER_MODE=local
+  HOST=127.0.0.1
+  MQTT_PORT=1883
+  if dpkg-query -W -f='${Status}' mosquitto 2>/dev/null | grep -qx 'install ok installed'; then
+    msg 'Existing Mosquitto will NOT be reconfigured.' 'Mosquitto esistente NON verrà riconfigurato.'
+    systemctl is-active --quiet mosquitto || die 'Existing Mosquitto is inactive; check manually.' 'Mosquitto esistente non attivo; verificare manualmente.'
+  else
+    MOSQ_NEW=true
+    msg 'Mosquitto will be installed with authenticated LAN listener on port 1883.' 'Mosquitto verrà installato con accesso LAN autenticato sulla porta 1883.'
+    [[ ! -e /etc/mosquitto/conf.d/mmdvm-dashboard.conf && ! -e /etc/mosquitto/mmdvm-dashboard.passwd ]] || die 'Mosquitto configuration collision.' 'Conflitto configurazione Mosquitto.'
+  fi
+else
+  field 'MQTT broker host/IP: ' 'Host/IP broker MQTT: ' '' '^[A-Za-z0-9._:-]+$'
+  HOST=$ANSWER
+  field 'MQTT port [1883]: ' 'Porta MQTT [1883]: ' 1883 '^[0-9]{1,5}$'
+  MQTT_PORT=$((10#$ANSWER))
+  (( MQTT_PORT >= 1 && MQTT_PORT <= 65535 )) || die 'Port out of range.' 'Porta fuori intervallo.'
 fi
+if [[ $MOSQ_NEW == true ]]; then
+  field 'New Mosquitto username [mmdvm-dashboard]: ' 'Nuovo utente Mosquitto [mmdvm-dashboard]: ' mmdvm-dashboard '^[A-Za-z0-9_.-]+$'
+  MQTT_USER=$ANSWER
+  while :; do
+    secret
+    [[ -n $MQTT_PASSWORD ]] && break
+    msg 'Password required for new broker.' 'Password obbligatoria per il nuovo broker.'
+  done
+else
+  ask 'MQTT username (blank if anonymous): ' 'Username MQTT (vuoto se anonimo): '
+  MQTT_USER=$ANSWER
+  secret
+  choice 'Use TLS? 1) No 2) Yes [1]: ' 'Usare TLS? 1) No 2) Sì [1]: ' '^[12]$' 1
+  [[ $ANSWER == 2 ]] && MQTT_TLS=true
+fi
+if [[ $DEPLOYMENT_MODE == local ]]; then
+  field 'MMDVM JSON topic [mmdvm/+/json]: ' 'Topic JSON MMDVM [mmdvm/+/json]: ' 'mmdvm/+/json' '^[A-Za-z0-9_+.#/-]+$'
+  TOPIC=$ANSWER
+else
+  # Agent data is received through AGENT_PREFIX/config, /telemetry, /status.
+  TOPIC='mmdvm/+/json'
+  msg 'Agent messages use the prefix above; legacy JSON topic stays at default.' 'I messaggi Agent usano il prefisso sopra; il topic JSON tradizionale resta predefinito.'
+fi
+DETECTED_IP=$(hostname -I 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i !~ /^127[.]/ && $i !~ /:/){print $i;exit}}')
+DETECTED_IP=${DETECTED_IP:-127.0.0.1}
+msg 'Enter the address used in your browser to reach this dashboard.' "Inserisci l'indirizzo che userai nel browser per accedere alla dashboard."
+field "Dashboard HTTPS address [$DETECTED_IP]: " "Indirizzo HTTPS dashboard [$DETECTED_IP]: " "$DETECTED_IP" '^[A-Za-z0-9._:-]+$'
+HTTPS_NAME=$ANSWER
 
 # The active Apache site keeps its own DocumentRoot and HTTPS configuration.
 # Add ONLY /api/ proxy rules, without creating another listener or vhost.
@@ -123,6 +182,10 @@ msg "Existing Apache sites and DocumentRoot directives will NOT be modified." "I
 msg "Frontend index.html -> /var/www/html/index.html. Existing Apache VirtualHosts and ports are preserved." "Frontend index.html -> /var/www/html/index.html. VirtualHost e porte Apache esistenti saranno preservati."
 msg "The /api/ reverse proxy will be enabled at Apache server level (all VirtualHosts)." "Il proxy /api/ verrà abilitato a livello globale Apache (tutti i VirtualHost)."
 msg "HTTPS will be configured automatically if needed." "HTTPS verrà configurato automaticamente se necessario."
+msg "--- Installation summary ---" "--- Riepilogo installazione ---"
+msg "Mode: $DEPLOYMENT_MODE | Broker: $BROKER_MODE ($HOST:$MQTT_PORT) | TLS: $MQTT_TLS" "Modalità: $DEPLOYMENT_MODE | Broker: $BROKER_MODE ($HOST:$MQTT_PORT) | TLS: $MQTT_TLS"
+msg "Agent node: $NODE_ID | Prefix: $AGENT_PREFIX | JSON topic: $TOPIC" "Nodo Agent: $NODE_ID | Prefisso: $AGENT_PREFIX | Topic JSON: $TOPIC"
+msg "HTTPS: https://$HTTPS_NAME/ | MQTT user: ${MQTT_USER:-anonymous}" "HTTPS: https://$HTTPS_NAME/ | Utente MQTT: ${MQTT_USER:-anonimo}"
 ask "Proceed with installation? [y/N]: " "Procedere con l'installazione? [s/N]: "
 if [[ $LANGUAGE == it ]]; then
   [[ ${ANSWER:-} == [sS] ]] || exit 0
@@ -130,9 +193,32 @@ else
   [[ ${ANSWER:-} == [yY] ]] || exit 0
 fi
 
+MQTT_SECRET_FILE=$(mktemp)
+chmod 0600 "$MQTT_SECRET_FILE"
+printf '%s' "$MQTT_PASSWORD" > "$MQTT_SECRET_FILE"
+unset MQTT_PASSWORD
+trap 'rm -f -- "${MQTT_SECRET_FILE:-}"' EXIT
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y curl ca-certificates apache2 openssl python3 python3-flask python3-werkzeug python3-psutil python3-paho-mqtt
+if [[ $MOSQ_NEW == true ]]; then apt-get install -y mosquitto mosquitto-clients; fi
+
+
+if [[ $MOSQ_NEW == true ]]; then
+  install -d -m 0755 /etc/mosquitto/conf.d
+  mosquitto_passwd -c -i /etc/mosquitto/mmdvm-dashboard.passwd "$MQTT_USER" < "$MQTT_SECRET_FILE" >/dev/null
+  chown mosquitto:mosquitto /etc/mosquitto/mmdvm-dashboard.passwd
+  chmod 0600 /etc/mosquitto/mmdvm-dashboard.passwd
+  cat > /etc/mosquitto/conf.d/mmdvm-dashboard.conf <<'MOSQ'
+listener 1883 0.0.0.0
+allow_anonymous false
+password_file /etc/mosquitto/mmdvm-dashboard.passwd
+MOSQ
+  chmod 0644 /etc/mosquitto/conf.d/mmdvm-dashboard.conf
+  systemctl enable --now mosquitto
+  systemctl restart mosquitto
+  systemctl is-active --quiet mosquitto || die 'Mosquitto failed to start.' 'Mosquitto non avviato.'
+fi
 
 id "$SERVICE_USER" >/dev/null 2>&1 || useradd --system --home "$APP" --shell /usr/sbin/nologin "$SERVICE_USER"
 install -d -o root -g "$SERVICE_USER" -m 2770 "$APP/config"
@@ -144,7 +230,7 @@ find "$APP/backend" "$APP/frontend" "$APP/admin" -type d -exec chmod 0755 {} +
 find "$APP/backend" "$APP/frontend" "$APP/admin" -type f -exec chmod 0644 {} +
 install -o root -g "$SERVICE_USER" -m 0660 "$SRC/config/dashboard.ini.example" "$APP/config/dashboard.ini"
 
-APP="$APP" CALLSIGN="$CALLSIGN" HOST="$HOST" MQTT_PORT="$MQTT_PORT" TOPIC="$TOPIC" MMDVM_INI="$MMDVM_INI" DEPLOYMENT_MODE="$DEPLOYMENT_MODE" NODE_ID="$NODE_ID" AGENT_PREFIX="$AGENT_PREFIX" python3 - <<'PYSET'
+APP="$APP" CALLSIGN="$CALLSIGN" HOST="$HOST" MQTT_PORT="$MQTT_PORT" TOPIC="$TOPIC" MMDVM_INI="$MMDVM_INI" DEPLOYMENT_MODE="$DEPLOYMENT_MODE" NODE_ID="$NODE_ID" AGENT_PREFIX="$AGENT_PREFIX" MQTT_USER="$MQTT_USER" MQTT_TLS="$MQTT_TLS" MQTT_SECRET_FILE="$MQTT_SECRET_FILE" python3 - <<'PYSET'
 import os, json, configparser
 from pathlib import Path
 root = Path(os.environ['APP'])
@@ -167,12 +253,14 @@ c.set('paths', 'tg_list_dir', str(root/'data/databases'))
 c.set('paths', 'tg_list_file', 'TG_List.csv')
 with p.open('w') as f: c.write(f)
 q = root/'data/mqtt-settings.json'
-q.write_text(json.dumps(dict(host=os.environ['HOST'], port=int(os.environ['MQTT_PORT']), topic=os.environ['TOPIC'], username='', password='', tls=False), indent=2)+'\n')
+q.write_text(json.dumps(dict(host=os.environ['HOST'], port=int(os.environ['MQTT_PORT']), topic=os.environ['TOPIC'], username=os.environ['MQTT_USER'], password=Path(os.environ['MQTT_SECRET_FILE']).read_text(), tls=os.environ['MQTT_TLS']=='true'), indent=2)+'\n')
 q.chmod(0o600)
 PYSET
 chown root:"$SERVICE_USER" "$APP/config/dashboard.ini"
 chmod 0660 "$APP/config/dashboard.ini"
 chown "$SERVICE_USER:$SERVICE_USER" "$APP/data/mqtt-settings.json"
+rm -f -- "$MQTT_SECRET_FILE"; MQTT_SECRET_FILE=
+trap - EXIT
 
 # Local databases are managed on the DASHBOARD host in both deployment modes.
 DB_DIR="$APP/data/databases"

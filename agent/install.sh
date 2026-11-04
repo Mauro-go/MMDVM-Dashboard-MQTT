@@ -65,26 +65,39 @@ for f in "$APP/agent.py" "$APP/agent.json" "$APP/broker.json" "/etc/systemd/syst
   [[ ! -e $f ]] || fail "file già esistente: $f. Nessuna sovrascrittura." "file already exists: $f. Refusing to overwrite."
 done
 
-if dpkg-query -W -f='${Status}' mosquitto 2>/dev/null | grep -qx 'install ok installed'; then
-  MOSQ_EXISTING=true
-  say 'Mosquitto già installato: configurazione e servizio esistenti NON verranno modificati.' 'Mosquitto already installed: existing configuration and service will NOT be changed.'
-  if ! systemctl is-active --quiet mosquitto; then
-    fail 'Mosquitto installato ma non attivo. Controllarlo manualmente prima di procedere.' 'Mosquitto installed but inactive. Check it manually before continuing.'
+say 'Broker MQTT: 1) Locale sul ripetitore  2) Remoto/esistente' 'MQTT broker: 1) Local on repeater  2) Remote/existing'
+while :; do
+  ask BROKER_CHOICE 'Posizione broker (1/2)' 'Broker location (1/2)' '2'
+  [[ $BROKER_CHOICE == 1 || $BROKER_CHOICE == 2 ]] && break
+  say 'Scelta non valida, riprovare.' 'Invalid choice, try again.'
+done
+MOSQ_EXISTING=true
+if [[ $BROKER_CHOICE == 1 ]]; then
+  if dpkg-query -W -f='${Status}' mosquitto 2>/dev/null | grep -qx 'install ok installed'; then
+    say 'Mosquitto esistente: configurazione preservata.' 'Existing Mosquitto: configuration preserved.'
+    systemctl is-active --quiet mosquitto || fail 'Mosquitto esistente non attivo.' 'Existing Mosquitto is inactive.'
+  else
+    MOSQ_EXISTING=false
+    [[ ! -e $MOSQ_CONF && ! -e $MOSQ_AUTH ]] || fail 'configurazione Mosquitto già presente.' 'Mosquitto configuration already exists.'
+    say 'Mosquitto verrà installato con autenticazione.' 'Mosquitto will be installed with authentication.'
   fi
-else
-  MOSQ_EXISTING=false
-  [[ ! -e $MOSQ_CONF && ! -e $MOSQ_AUTH ]] || fail 'configurazione Mosquitto MMDVM già presente: controllare manualmente.' 'MMDVM Mosquitto configuration already exists: check manually.'
-  say 'Mosquitto assente: verrà installato e configurato con autenticazione sulla porta 1883.' 'Mosquitto absent: it will be installed and configured with authentication on port 1883.'
 fi
 
 ask MMDVM_INI 'Percorso completo MMDVM.ini' 'Full path to MMDVM.ini' '/etc/MMDVM.ini'
 [[ -f $MMDVM_INI && -r $MMDVM_INI ]] || fail 'MMDVM.ini inesistente o illeggibile.' 'MMDVM.ini missing or unreadable.'
-ask NODE_ID 'Identificativo ponte (node_id)' 'Repeater identifier (node_id)' 'N0CALL'
-NODE_ID=${NODE_ID^^}
-[[ $NODE_ID =~ ^[A-Za-z0-9_-]+$ ]] || fail 'node_id non valido.' 'invalid node_id.'
-ask TOPIC_PREFIX 'Prefisso topic MQTT' 'MQTT topic prefix' "mmdvm/$NODE_ID"
-TOPIC_PREFIX=${TOPIC_PREFIX#/}; TOPIC_PREFIX=${TOPIC_PREFIX%/}
-[[ $TOPIC_PREFIX =~ ^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$ ]] || fail 'prefisso topic non valido.' 'invalid topic prefix.'
+while :; do
+  ask NODE_ID 'Identificativo ponte (node_id)' 'Repeater identifier (node_id)' 'N0CALL'
+  NODE_ID=${NODE_ID^^}
+  [[ $NODE_ID =~ ^[A-Za-z0-9_-]+$ ]] && break
+  say 'node_id non valido, riprovare.' 'Invalid node_id, try again.'
+done
+say "Il prefisso deve coincidere con quello della dashboard." "The prefix must match the dashboard."
+while :; do
+  ask TOPIC_PREFIX 'Prefisso topic MQTT' 'MQTT topic prefix' "mmdvm/$NODE_ID"
+  TOPIC_PREFIX=${TOPIC_PREFIX#/}; TOPIC_PREFIX=${TOPIC_PREFIX%/}
+  [[ $TOPIC_PREFIX =~ ^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$ ]] && break
+  say 'Prefisso non valido, riprovare.' 'Invalid prefix, try again.'
+done
 ask INTERVAL 'Intervallo pubblicazione in secondi' 'Publishing interval in seconds' '10'
 [[ $INTERVAL =~ ^[0-9]+$ ]] || fail 'intervallo non numerico.' 'interval must be numeric.'
 (( 10#$INTERVAL >= 5 )) || fail 'intervallo minimo 5 secondi.' 'minimum interval is 5 seconds.'
@@ -186,5 +199,5 @@ systemctl daemon-reload
 systemctl enable --now "$SERVICE"
 systemctl is-active --quiet "$SERVICE" || fail 'Agent non attivo; consultare journalctl -u mmdvm-agent.' 'Agent inactive; inspect journalctl -u mmdvm-agent.'
 say 'Installazione completata.' 'Installation completed.'
-say 'Dashboard remota: usare IP del Raspberry, porta 1883, topic e credenziali configurate.' 'Remote dashboard: use Raspberry IP, port 1883, configured topic and credentials.'
+say "Dashboard: usare broker $MQTT_HOST:$MQTT_PORT e prefisso $TOPIC_PREFIX con le stesse credenziali." "Dashboard: use broker $MQTT_HOST:$MQTT_PORT and prefix $TOPIC_PREFIX with matching credentials."
 systemctl --no-pager --full status "$SERVICE" || true

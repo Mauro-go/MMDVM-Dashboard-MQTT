@@ -7,6 +7,7 @@ import subprocess
 import configparser
 import psutil
 import config as dashboard_config
+import remote_agent
 
 from flask import Flask, jsonify, send_from_directory
 
@@ -26,6 +27,8 @@ app.register_blueprint(admin_bp)
 
 
 def read_repeater_info():
+    if remote_agent.enabled():
+        return remote_agent.repeater_info()
     info = {
         "callsign": get_repeater_callsign() or "MMDVM",
         "location": "",
@@ -60,6 +63,8 @@ def frequency_mhz(value):
 
 
 def system_info():
+    if remote_agent.enabled():
+        return remote_agent.system_info()
     try:
         temp = psutil.sensors_temperatures()
         cpu_temp = None
@@ -130,6 +135,8 @@ def service_enabled(unit):
 
 @app.route("/api/services")
 def api_services():
+    if remote_agent.enabled():
+        return jsonify(remote_agent.services(SERVICE_CANDIDATES))
     services = []
 
     for unit, name in SERVICE_CANDIDATES:
@@ -151,6 +158,8 @@ def api_services():
 
 
 def read_mmdvm_modes():
+    if remote_agent.enabled():
+        return remote_agent.modes()
     """Legge le modalità abilitate direttamente da MMDVM.ini."""
     modes = {
         "dmr": False,
@@ -187,9 +196,43 @@ def read_mmdvm_modes():
     return modes
 
 
+
+def local_radio_settings():
+    """Legge MMDVM.ini e normalizza i dati radio come l'Agent remoto."""
+    from radio_info import normalize_radio
+
+    cfg = configparser.ConfigParser(
+        interpolation=None,
+        strict=False
+    )
+    cfg.optionxform = str
+
+    path = dashboard_config.get_mmdvm_ini()
+
+    if not cfg.read(path):
+        return {}
+
+    sections = ("Info", "FM", "DMR")
+    fields = {
+        section: dict(cfg.items(section))
+        for section in sections
+        if cfg.has_section(section)
+    }
+
+    modes = {
+        section: cfg.getboolean(
+            section, "Enable", fallback=False
+        )
+        for section in ("FM", "DMR")
+    }
+
+    return normalize_radio(fields, modes)
+
+
+
 @app.route("/api/config")
 def api_config():
-    return jsonify({
+    result = {
         "dashboard": {
             "language": dashboard_config.get("dashboard", "language"),
             "title": dashboard_config.get("dashboard", "title"),
@@ -241,7 +284,13 @@ def api_config():
             "aprsgateway_url": dashboard_config.get("links", "aprsgateway_url"),
             "aprsgateway_label": dashboard_config.get("links", "aprsgateway_label"),
         },
-    })
+    }
+    if remote_agent.enabled():
+        result["repeater"].update(remote_agent.repeater_settings())
+        result["agent"] = remote_agent.metadata()
+    else:
+        result["repeater"].update(local_radio_settings())
+    return jsonify(result)
 
 
 @app.route("/api/status")
@@ -258,6 +307,7 @@ def api_status():
     return jsonify({
         "repeater": repeater,
         "system": system_info(),
+        "agent": remote_agent.metadata() if remote_agent.enabled() else {"mode":"local", "online":True},
     })
 
 

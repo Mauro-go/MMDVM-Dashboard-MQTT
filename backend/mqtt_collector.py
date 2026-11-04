@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 from mqtt_store import connect, save
 from mqtt_settings import SETTINGS, load
+import remote_agent
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("mqtt-collector")
@@ -41,6 +42,8 @@ def cleanup_old_events(db):
 
 def on_message(client, userdata, msg):
     try:
+        if remote_agent.ingest(msg.topic, msg.payload):
+            return
         event = json.loads(msg.payload.decode("utf-8"))
         if not isinstance(event, dict):
             return
@@ -88,7 +91,22 @@ def main():
                         "port": int(os.environ.get("MMDVM_MQTT_PORT", "1883")),
                         "topic": os.environ.get("MMDVM_MQTT_TOPIC", "mmdvm/+/json")
                     })
-                signature = json.dumps(settings, sort_keys=True)
+                # COLLECTOR_DEPLOYMENT_RELOAD_V1
+                import config as dashboard_config
+                dashboard_config.reload_config()
+
+                agent_enabled = remote_agent.enabled()
+                agent_prefix = remote_agent.prefix() if agent_enabled else ""
+
+                if agent_enabled and not agent_prefix:
+                    raise ValueError("Remote Agent topic prefix is empty")
+
+                signature = json.dumps({
+                    "mqtt": settings,
+                    "agent_enabled": agent_enabled,
+                    "agent_prefix": agent_prefix,
+                    "agent_node_id": remote_agent.node_id() if agent_enabled else ""
+                }, sort_keys=True)
             except Exception:
                 logger.exception("Invalid MQTT configuration; keeping current connection")
                 time.sleep(3)
@@ -103,10 +121,23 @@ def main():
                 try:
                     new_client = mqtt.Client(userdata={"db": db})
                     new_client.on_message = on_message
-                    def connected(c, userdata, flags, rc):
+                    # COLLECTOR_CALLBACK_SNAPSHOT_V1
+                    subscribed_topic = settings["topic"]
+                    subscribed_agent = agent_enabled
+                    subscribed_prefix = agent_prefix
+
+                    def connected(
+                        c, userdata, flags, rc,
+                        subscribed_topic=subscribed_topic,
+                        subscribed_agent=subscribed_agent,
+                        subscribed_prefix=subscribed_prefix
+                    ):
                         if rc == 0:
-                            c.subscribe(settings["topic"], qos=0)
-                            logger.info("Subscribed: %s", settings["topic"])
+                            c.subscribe(subscribed_topic, qos=0)
+                            if subscribed_agent:
+                                c.subscribe(subscribed_prefix + "/#", qos=1)
+                                logger.info("Subscribed Agent: %s/#", subscribed_prefix)
+                            logger.info("Subscribed: %s", subscribed_topic)
                         else:
                             logger.error("MQTT connect error: %s", rc)
                     new_client.on_connect = connected

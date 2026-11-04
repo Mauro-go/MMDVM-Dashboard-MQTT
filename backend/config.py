@@ -30,6 +30,11 @@ def get_path(option, fallback=""):
 
 
 def get_mmdvm_ini():
+    """Percorso MMDVM.ini locale, compatibile con le vecchie configurazioni."""
+    configured = get("deployment", "mmdvm_ini", "").strip()
+    if configured:
+        return configured
+
     directory = get_path("mmdvm_dir")
     filename = get_path("mmdvm_file")
     return str(Path(directory) / filename)

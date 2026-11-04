@@ -11,7 +11,9 @@ from pathlib import Path
 
 from config import CONFIG_FILE
 
+# DEPLOYMENT_ADMIN_V1
 ALLOWED = {
+    "deployment": {"mode", "mmdvm_ini", "node_id", "agent_topic_prefix"},
     "dashboard": {"language", "title"},
     "repeater": {
         "callsign", "location", "city", "locator", "altitude",
@@ -47,6 +49,39 @@ def _save_config_locked(changes):
     with CONFIG_FILE.open("r", encoding="utf-8") as f:
         cfg.read_file(f)
 
+    deployment = changes.get("deployment", {})
+    if deployment and not isinstance(deployment, dict):
+        raise ValueError("Configurazione deployment non valida")
+
+    current_mode = cfg.get("deployment", "mode", fallback="local")
+    target_mode = deployment.get("mode", current_mode)
+
+    if target_mode not in ("local", "remote"):
+        raise ValueError("Modalità deployment non valida")
+
+    if target_mode == "remote":
+        if "mmdvm_ini" in deployment:
+            raise ValueError("MMDVM.ini non modificabile in modalità remota")
+        if "paths" in changes and any(
+            key in changes["paths"] for key in ("mmdvm_dir", "mmdvm_file")
+        ):
+            raise ValueError("Percorso MMDVM.ini bloccato in modalità remota")
+
+        node = deployment.get(
+            "node_id", cfg.get("deployment", "node_id", fallback="")
+        )
+        prefix = deployment.get(
+            "agent_topic_prefix",
+            cfg.get("deployment", "agent_topic_prefix", fallback="")
+        )
+        import re
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", node):
+            raise ValueError("Node ID Agent non valido")
+        if not re.fullmatch(
+            r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", prefix
+        ):
+            raise ValueError("Prefisso MQTT Agent non valido")
+
     for section, values in changes.items():
         if section not in ALLOWED or not isinstance(values, dict):
             raise ValueError("Sezione non autorizzata")
@@ -65,6 +100,37 @@ def _save_config_locked(changes):
                 raise ValueError("Caratteri non consentiti")
 
             cfg.set(section, key, value)
+
+    # DEPLOYMENT_PATH_SYNC_V1
+    if "deployment" in changes and "mmdvm_ini" in changes["deployment"]:
+        from pathlib import PurePosixPath
+
+        path = changes["deployment"]["mmdvm_ini"]
+        if not path.startswith("/") or path.endswith("/"):
+            raise ValueError("Percorso MMDVM.ini non valido")
+
+        parsed = PurePosixPath(path)
+        if parsed.name in ("", ".", ".."):
+            raise ValueError("Nome file MMDVM.ini non valido")
+
+        directory = str(parsed.parent)
+        filename = parsed.name
+
+        if "paths" in changes:
+            for key, expected in (
+                ("mmdvm_dir", directory),
+                ("mmdvm_file", filename),
+            ):
+                if key in changes["paths"] and changes["paths"][key] != expected:
+                    raise ValueError("Percorsi MMDVM.ini incoerenti")
+
+        changes.setdefault("paths", {}).update({
+            "mmdvm_dir": directory,
+            "mmdvm_file": filename,
+        })
+
+        cfg.set("paths", "mmdvm_dir", directory)
+        cfg.set("paths", "mmdvm_file", filename)
 
     if cfg.get("dashboard", "language", fallback="it") not in ("it", "en"):
         raise ValueError("Lingua non supportata")
@@ -120,7 +186,7 @@ def update_ini_text(original, changes):
             section = match.group(1).strip()
 
         elif section in changes:
-            match = re.match(r"^(\s*)([^=:#\s]+)(\s*=\s*)(.*?)(\r?\n)?$", line)
+            match = re.match(r"^(\s*)([^=:#\s]+)([ \t]*=[ \t]*)([^\r\n]*)(\r?\n)?$", line)
 
             if match:
                 key = match.group(2).lower()

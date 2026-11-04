@@ -1,4 +1,7 @@
+
 # MMDVM Dashboard MQTT
+<img width="1917" height="1077" alt="Screenshot MMDVM Dashboard MQTT" src="https://github.com/user-attachments/assets/3a8af506-f042-42d1-a3e5-58cbe43487f2" />
+
 
 **[Italiano](#italiano) · [English](#english)**
 

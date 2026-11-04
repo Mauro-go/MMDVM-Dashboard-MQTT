@@ -17,7 +17,7 @@ HOURS_HISTORY = 24
 
 def get_repeater_callsign():
     if remote_agent.enabled():
-        return dashboard_config.get("repeater", "callsign", fallback="").strip()
+        return str(remote_agent.repeater_info().get("callsign") or "").strip()
     try:
         config = configparser.ConfigParser(strict=False)
         config.optionxform = str

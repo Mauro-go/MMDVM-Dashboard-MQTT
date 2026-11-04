@@ -46,7 +46,7 @@ else
   msg "Apache will be installed." "Apache verrà installato."
 fi
 
-ask "Repeater callsign [MMDVM]: " "Nominativo ripetitore [MMDVM]: "; CALLSIGN=${ANSWER:-MMDVM}
+CALLSIGN=
 ask "MQTT broker [127.0.0.1]: " "Broker MQTT [127.0.0.1]: "; HOST=${ANSWER:-127.0.0.1}
 ask "MQTT port [1883]: " "Porta MQTT [1883]: "; MQTT_PORT=${ANSWER:-1883}
 ask "MQTT topic [mmdvm/+/json]: " "Topic MQTT [mmdvm/+/json]: "; TOPIC=${ANSWER:-mmdvm/+/json}

@@ -91,7 +91,7 @@ def repeater_info():
     fields = snapshot()['config'].get('fields', {})
     general = fields.get('General', {})
     info = fields.get('Info', {})
-    return {'callsign':str(general.get('Callsign') or dashboard_config.get('repeater','callsign','MMDVM')),
+    return {'callsign':str(general.get('Callsign') or '').strip(),
             'location':dashboard_config.get('repeater','location'),
             'description':'', 'rx_frequency':str(info.get('RXFrequency','')),
             'tx_frequency':str(info.get('TXFrequency','')), 'power':str(info.get('Power',''))}

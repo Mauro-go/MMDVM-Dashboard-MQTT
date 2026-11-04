@@ -85,8 +85,12 @@ fi
 
 ask MMDVM_INI 'Percorso completo MMDVM.ini' 'Full path to MMDVM.ini' '/etc/MMDVM.ini'
 [[ -f $MMDVM_INI && -r $MMDVM_INI ]] || fail 'MMDVM.ini inesistente o illeggibile.' 'MMDVM.ini missing or unreadable.'
+DETECTED_NODE=$(awk -F= '
+  /^\[General\]/{inside=1;next} /^\[/{inside=0} inside && /^[[:space:]]*Callsign[[:space:]]*=/{gsub(/[[:space:]\r]/,"",$2);print $2;exit}
+' "$MMDVM_INI")
+DETECTED_NODE=${DETECTED_NODE:-N0CALL}
 while :; do
-  ask NODE_ID 'Identificativo ponte (node_id)' 'Repeater identifier (node_id)' 'N0CALL'
+  ask NODE_ID 'Identificativo ponte (node_id)' 'Repeater identifier (node_id)' "$DETECTED_NODE"
   NODE_ID=${NODE_ID^^}
   [[ $NODE_ID =~ ^[A-Za-z0-9_-]+$ ]] && break
   say 'node_id non valido, riprovare.' 'Invalid node_id, try again.'

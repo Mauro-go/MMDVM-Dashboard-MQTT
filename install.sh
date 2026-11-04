@@ -33,40 +33,13 @@ command -v systemctl >/dev/null && command -v apt-get >/dev/null || die "systemd
 for file in backend/app.py backend/mqtt_collector.py backend/telegram_bot.py backend/telegram_settings.py backend/admin_api.py config/dashboard.ini.example frontend/index.html scripts/setup-https.sh; do
   [[ -f "$SRC/$file" ]] || die "Missing source: $file" "File sorgente mancante: $file"
 done
-# Installation ownership and completion markers.
-MARKER="$APP/.mmdvm-installer-incomplete"
-COMPLETE="$APP/.mmdvm-installer-complete"
-RESUME=false
-
-if [[ -e "$COMPLETE" ]]; then
-  die "A completed dashboard installation already exists. Aborting." \\
-      "Dashboard già installata e completata. Operazione annullata."
-fi
-
-EXISTING_COMPONENTS=()
-[[ ! -e "$APP" ]] || EXISTING_COMPONENTS+=("$APP")
+[[ ! -e $APP ]] || die "Existing installation found. Aborting." "Installazione esistente. Operazione annullata."
 for unit in mmdvm-dashboard-mqtt mmdvm-mqtt-collector mmdvm-telegram-bot; do
-  [[ ! -e "/etc/systemd/system/$unit.service" ]] ||
-    EXISTING_COMPONENTS+=("/etc/systemd/system/$unit.service")
+  [[ ! -e /etc/systemd/system/$unit.service ]] || die "Existing service: $unit" "Servizio esistente: $unit"
 done
-[[ ! -e /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf ]] ||
-  EXISTING_COMPONENTS+=("/etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf")
-
-if (( ${#EXISTING_COMPONENTS[@]} )); then
-  if [[ ! -f "$MARKER" ]]; then
-    printf '  %s\\n' "${EXISTING_COMPONENTS[@]}"
-    die "Existing installation without recovery marker. Manual review required." \\
-        "Installazione esistente senza indicatore di recupero. Necessaria verifica manuale."
-  fi
-  msg "Interrupted installation detected." "Rilevata installazione interrotta."
-  printf '  %s\\n' "${EXISTING_COMPONENTS[@]}"
-  ask "Resume this installation? [y/N]: " "Riprendere questa installazione? [s/N]: "
-  case "${ANSWER,,}" in
-    y|yes|s|si) RESUME=true ;;
-    *) die "Cancelled." "Annullato." ;;
-  esac
-fi
-
+for conf in /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf; do
+  [[ ! -e $conf && ! -L $conf ]] || die "Existing Apache config: $conf" "Configurazione Apache esistente: $conf"
+done
 if command -v apache2ctl >/dev/null; then
   msg "Apache is already installed; existing websites will be preserved." "Apache è già installato; i siti esistenti saranno preservati."
 else
@@ -127,15 +100,7 @@ else
   AGENT_PREFIX=$ANSWER
 fi
 
-if [[ $RESUME == true && -s "$APP/data/mqtt-settings.json" ]]; then
-  msg "Existing MQTT settings will be preserved." "Le impostazioni MQTT esistenti saranno conservate."
-  BROKER_SETTINGS_PRESENT=true
-else
-  BROKER_SETTINGS_PRESENT=false
-fi
-
-if [[ $BROKER_SETTINGS_PRESENT == false ]]; then
-msg 'Broker location: 1) Local to dashboard  2) Remote/existing broker'  'Posizione broker: 1) Locale sulla dashboard  2) Broker remoto/esistente'
+msg 'Broker location: 1) Local to dashboard  2) Remote/existing broker' 'Posizione broker: 1) Locale sulla dashboard  2) Broker remoto/esistente'
 choice 'Broker location [2]: ' 'Posizione broker [2]: ' '^[12]$' 2
 if [[ $ANSWER == 1 ]]; then
   BROKER_MODE=local
@@ -171,8 +136,6 @@ else
   choice 'Use TLS? 1) No 2) Yes [1]: ' 'Usare TLS? 1) No 2) Sì [1]: ' '^[12]$' 1
   [[ $ANSWER == 2 ]] && MQTT_TLS=true
 fi
-fi
-
 if [[ $DEPLOYMENT_MODE == local ]]; then
   field 'MMDVM JSON topic [mmdvm/+/json]: ' 'Topic JSON MMDVM [mmdvm/+/json]: ' 'mmdvm/+/json' '^[A-Za-z0-9_+.#/-]+$'
   TOPIC=$ANSWER
@@ -181,24 +144,6 @@ else
   TOPIC='mmdvm/+/json'
   msg 'Agent messages use the prefix above; legacy JSON topic stays at default.' 'I messaggi Agent usano il prefisso sopra; il topic JSON tradizionale resta predefinito.'
 fi
-if [[ $BROKER_SETTINGS_PRESENT == true ]]; then
-  eval "$(APP="$APP" python3 - <<'PYMQ'
-import json, os, shlex
-from pathlib import Path
-d=json.loads((Path(os.environ['APP'])/'data/mqtt-settings.json').read_text())
-for name, value in (
-    ('HOST', d.get('host','')),
-    ('MQTT_PORT', str(d.get('port',1883))),
-    ('MQTT_USER', d.get('username','')),
-    ('MQTT_TLS', str(d.get('tls',False)).lower()),
-):
-    print(name+'='+shlex.quote(str(value)))
-PYMQ
-)"
-  BROKER_MODE=existing
-  MOSQ_NEW=false
-fi
-
 DETECTED_IP=$(hostname -I 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i !~ /^127[.]/ && $i !~ /:/){print $i;exit}}')
 DETECTED_IP=${DETECTED_IP:-127.0.0.1}
 msg 'Enter the address used in your browser to reach this dashboard.' "Inserisci l'indirizzo che userai nel browser per accedere alla dashboard."
@@ -210,7 +155,7 @@ HTTPS_NAME=$ANSWER
 if command -v ss >/dev/null; then
   [[ -z $(ss -H -ltn "sport = :8089") ]] || die "Backend port 8089 is in use." "Porta backend 8089 occupata."
 fi
-if [[ -d /etc/apache2 && $RESUME != true ]]; then
+if [[ -d /etc/apache2 ]]; then
   if grep -RIEq '^[[:space:]]*(ProxyPass|Alias|Redirect|<Location)[[:space:]]+["'\''"]?/api(/|["'\''"]|[[:space:]>])' /etc/apache2/sites-enabled /etc/apache2/conf-enabled 2>/dev/null; then
     die "Apache already defines /api/. Review its configuration manually." "Apache gestisce già /api/. Controlla manualmente la configurazione."
   fi
@@ -222,7 +167,7 @@ while IFS= read -r -d '' file; do
   relative=${file#"$SRC/frontend/"}
   if [[ -e "$WEBROOT/$relative" || -L "$WEBROOT/$relative" ]]; then COLLISIONS+=("$relative"); fi
 done < <(find "$SRC/frontend" -type f -print0)
-if (( ${#COLLISIONS[@]} )) && [[ $RESUME != true ]]; then
+if (( ${#COLLISIONS[@]} )); then
   msg "The following web files already exist:" "I seguenti file web esistono già:"
   printf '  %s\n' "${COLLISIONS[@]}"
   msg "All conflicting files will be backed up before replacement." "Tutti i file in conflitto saranno salvati prima della sostituzione."
@@ -248,40 +193,24 @@ else
   [[ ${ANSWER:-} == [yY] ]] || exit 0
 fi
 
+if dpkg-query -W -f='${Status}' apache2 2>/dev/null | grep -qx 'install ok installed'; then
+  ask 'Reuse installed Apache? [Y/n]: ' 'Riutilizzare Apache installato? [S/n]: '
+else
+  ask 'Install Apache? [Y/n]: ' 'Installare Apache? [S/n]: '
+fi
+case "${ANSWER,,}" in ''|y|yes|s|si) ;; *) die 'Apache required; cancelled.' 'Apache necessario; annullato.' ;; esac
+
 MQTT_SECRET_FILE=$(mktemp)
 chmod 0600 "$MQTT_SECRET_FILE"
 printf '%s' "$MQTT_PASSWORD" > "$MQTT_SECRET_FILE"
 unset MQTT_PASSWORD
 trap 'rm -f -- "${MQTT_SECRET_FILE:-}"' EXIT
 export DEBIAN_FRONTEND=noninteractive
-
-# Mark a new installation before the first package or filesystem change.
-if [[ $RESUME != true ]]; then
-  install -d -m 0755 "$APP"
-  printf '%s\\n' "Started: $(date -Is)" > "$MARKER"
-fi
-
-# Apache installation policy
-if dpkg-query -W -f='${Status}' apache2 2>/dev/null | grep -q 'install ok installed'; then
-    msg "Apache is already installed." "Apache è già installato."
-    ask "Use existing Apache installation? [Y/n]: " "Utilizzare Apache esistente? [S/n]: "
-    case "${ANSWER,,}" in
-        ""|y|yes|s|si) ;;
-        *) die "Apache is required for this installation." "Apache è necessario per questa installazione." ;;
-    esac
-else
-    ask "Apache is not installed. Install it? [Y/n]: " "Apache non è installato. Installarlo? [S/n]: "
-    case "${ANSWER,,}" in
-        ""|y|yes|s|si) ;;
-        *) die "Apache installation declined." "Installazione Apache rifiutata." ;;
-    esac
-fi
-
 apt-get update
-if dpkg-query -W -f='${Status}' apache2 2>/dev/null | grep -q 'install ok installed'; then
-    apt-get install -y curl ca-certificates openssl python3 python3-flask python3-werkzeug python3-psutil python3-paho-mqtt
+if dpkg-query -W -f='${Status}' apache2 2>/dev/null | grep -qx 'install ok installed'; then
+  apt-get install -y curl ca-certificates openssl python3 python3-flask python3-werkzeug python3-psutil python3-paho-mqtt
 else
-    apt-get install -y curl ca-certificates apache2 openssl python3 python3-flask python3-werkzeug python3-psutil python3-paho-mqtt
+  apt-get install -y curl ca-certificates apache2 openssl python3 python3-flask python3-werkzeug python3-psutil python3-paho-mqtt
 fi
 if [[ $MOSQ_NEW == true ]]; then apt-get install -y mosquitto mosquitto-clients; fi
 
@@ -310,27 +239,22 @@ for dir in backend frontend admin; do cp -a "$SRC/$dir" "$APP/"; done
 chown -R root:root "$APP/backend" "$APP/frontend" "$APP/admin"
 find "$APP/backend" "$APP/frontend" "$APP/admin" -type d -exec chmod 0755 {} +
 find "$APP/backend" "$APP/frontend" "$APP/admin" -type f -exec chmod 0644 {} +
-if [[ ! -f "$APP/config/dashboard.ini" ]]; then
-  install -o root -g "$SERVICE_USER" -m 0660 "$SRC/config/dashboard.ini.example" "$APP/config/dashboard.ini"
-fi
+install -o root -g "$SERVICE_USER" -m 0660 "$SRC/config/dashboard.ini.example" "$APP/config/dashboard.ini"
 
-APP="$APP" RESUME="$RESUME" CALLSIGN="$CALLSIGN" HOST="$HOST" MQTT_PORT="$MQTT_PORT" TOPIC="$TOPIC" MMDVM_INI="$MMDVM_INI" DEPLOYMENT_MODE="$DEPLOYMENT_MODE" NODE_ID="$NODE_ID" AGENT_PREFIX="$AGENT_PREFIX" MQTT_USER="$MQTT_USER" MQTT_TLS="$MQTT_TLS" MQTT_SECRET_FILE="$MQTT_SECRET_FILE" python3 - <<'PYSET'
+APP="$APP" CALLSIGN="$CALLSIGN" HOST="$HOST" MQTT_PORT="$MQTT_PORT" TOPIC="$TOPIC" MMDVM_INI="$MMDVM_INI" DEPLOYMENT_MODE="$DEPLOYMENT_MODE" NODE_ID="$NODE_ID" AGENT_PREFIX="$AGENT_PREFIX" MQTT_USER="$MQTT_USER" MQTT_TLS="$MQTT_TLS" MQTT_SECRET_FILE="$MQTT_SECRET_FILE" python3 - <<'PYSET'
 import os, json, configparser
 from pathlib import Path
 root = Path(os.environ['APP'])
 p = root/'config/dashboard.ini'
 c = configparser.ConfigParser(interpolation=None)
 c.read(p)
-resume = os.environ.get('RESUME') == 'true'
-if not resume:
-    c.set('repeater', 'callsign', os.environ['CALLSIGN'])
+c.set('repeater', 'callsign', os.environ['CALLSIGN'])
 if not c.has_section('deployment'):
     c.add_section('deployment')
-if not resume:
-    c.set('deployment', 'mode', os.environ['DEPLOYMENT_MODE'])
-if not resume:\n    c.set('deployment', 'mmdvm_ini', os.environ['MMDVM_INI'])
-if not resume:\n    c.set('deployment', 'node_id', os.environ['NODE_ID'])
-if not resume:\n    c.set('deployment', 'agent_topic_prefix', os.environ['AGENT_PREFIX'])
+c.set('deployment', 'mode', os.environ['DEPLOYMENT_MODE'])
+c.set('deployment', 'mmdvm_ini', os.environ['MMDVM_INI'])
+c.set('deployment', 'node_id', os.environ['NODE_ID'])
+c.set('deployment', 'agent_topic_prefix', os.environ['AGENT_PREFIX'])
 m = Path(os.environ['MMDVM_INI'])
 if not c.has_section('paths'): c.add_section('paths')
 c.set('paths', 'mmdvm_dir', str(m.parent))
@@ -338,17 +262,14 @@ c.set('paths', 'mmdvm_file', m.name)
 c.set('paths', 'dmr_ids', str(root/'data/databases/DMRIds.dat'))
 c.set('paths', 'tg_list_dir', str(root/'data/databases'))
 c.set('paths', 'tg_list_file', 'TG_List.csv')
-if not resume:
-    with p.open('w') as f: c.write(f)
+with p.open('w') as f: c.write(f)
 q = root/'data/mqtt-settings.json'
-if not (resume and q.exists()):
-    q.write_text(json.dumps(dict(host=os.environ['HOST'], port=int(os.environ['MQTT_PORT']), topic=os.environ['TOPIC'], username=os.environ['MQTT_USER'], password=Path(os.environ['MQTT_SECRET_FILE']).read_text(), tls=os.environ['MQTT_TLS']=='true'), indent=2)+'\n')
-    q.chmod(0o600)
+q.write_text(json.dumps(dict(host=os.environ['HOST'], port=int(os.environ['MQTT_PORT']), topic=os.environ['TOPIC'], username=os.environ['MQTT_USER'], password=Path(os.environ['MQTT_SECRET_FILE']).read_text(), tls=os.environ['MQTT_TLS']=='true'), indent=2)+'\n')
+q.chmod(0o600)
 PYSET
 chown root:"$SERVICE_USER" "$APP/config/dashboard.ini"
 chmod 0660 "$APP/config/dashboard.ini"
 chown "$SERVICE_USER:$SERVICE_USER" "$APP/data/mqtt-settings.json"
-chmod 0600 "$APP/data/mqtt-settings.json"
 rm -f -- "$MQTT_SECRET_FILE"; MQTT_SECRET_FILE=
 trap - EXIT
 
@@ -400,9 +321,6 @@ while IFS= read -r -d '' file; do
   relative=${file#"$SRC/frontend/"}
   target="$WEBROOT/$relative"
   install -d -m 0755 "$(dirname "$target")"
-  if [[ $RESUME == true && ( -e $target || -L $target ) ]]; then
-    continue
-  fi
   if [[ -e $target || -L $target ]]; then
     cp -a -- "$target" "$target.bak-mmdvm-$STAMP"
   fi
@@ -410,7 +328,6 @@ while IFS= read -r -d '' file; do
   chmod 0644 "$target"
 done < <(find "$SRC/frontend" -type f -print0)
 
-if [[ $RESUME != true || ! -f /etc/systemd/system/mmdvm-mqtt-collector.service ]]; then
 cat > /etc/systemd/system/mmdvm-mqtt-collector.service <<EOF
 [Unit]
 Description=MMDVM Dashboard MQTT Collector
@@ -431,8 +348,6 @@ ReadWritePaths=$APP/data
 [Install]
 WantedBy=multi-user.target
 EOF
-fi
-if [[ $RESUME != true || ! -f /etc/systemd/system/mmdvm-dashboard-mqtt.service ]]; then
 cat > /etc/systemd/system/mmdvm-dashboard-mqtt.service <<EOF
 [Unit]
 Description=MMDVM Dashboard MQTT Backend
@@ -455,8 +370,6 @@ ReadWritePaths=$APP/data $APP/config $STATE
 [Install]
 WantedBy=multi-user.target
 EOF
-fi
-if [[ $RESUME != true || ! -f /etc/systemd/system/mmdvm-telegram-bot.service ]]; then
 cat > /etc/systemd/system/mmdvm-telegram-bot.service <<EOF
 [Unit]
 Description=MMDVM MQTT Telegram Bot
@@ -479,14 +392,12 @@ PrivateTmp=true
 [Install]
 WantedBy=multi-user.target
 EOF
-fi
 
 # API proxy only. Apache continues to serve /var/www/html/index.html itself.
 # Existing HTTPS, ports, virtual hosts and DocumentRoot directives are unchanged.
 # HTTPS_TRANSACTION_V3: register cleanup BEFORE changing Apache configuration.
 HTTPS_CREATED=0
 HTTPS_COMMITTED=0
-API_CREATED=0
 HTTPS_RESULT_FILE=$(mktemp)
 chmod 0600 "$HTTPS_RESULT_FILE"
 https_install_cleanup() {
@@ -500,10 +411,8 @@ https_install_cleanup() {
       rm -f -- /etc/apache2/ssl/mmdvm-dashboard-mqtt/server.key /etc/apache2/ssl/mmdvm-dashboard-mqtt/server.crt
       rmdir -- /etc/apache2/ssl/mmdvm-dashboard-mqtt 2>/dev/null || true
     fi
-    if (( API_CREATED == 1 )); then
-      a2disconf mmdvm-dashboard-mqtt-api >/dev/null 2>&1 || true
-      rm -f -- /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf
-    fi
+    a2disconf mmdvm-dashboard-mqtt-api >/dev/null 2>&1 || true
+    rm -f -- /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf
     if apache2ctl configtest >/dev/null 2>&1 && systemctl is-active --quiet apache2; then
       systemctl reload apache2 || true
     fi
@@ -515,40 +424,16 @@ https_install_cleanup() {
 trap https_install_cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-if [[ $RESUME == true && -f /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf ]]; then
-  msg "Existing API proxy preserved." "Proxy API esistente conservato."
-else
-API_CREATED=1
 cat > /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf <<EOF
 ProxyPass /api/ http://127.0.0.1:8089/api/
 ProxyPassReverse /api/ http://127.0.0.1:8089/api/
 EOF
-fi
 a2enmod proxy proxy_http ssl >/dev/null
 a2enconf mmdvm-dashboard-mqtt-api >/dev/null
 
-# During recovery, reuse only the HTTPS site created by this installer.
-HTTPS_SITE=/etc/apache2/sites-available/mmdvm-dashboard-mqtt-ssl.conf
-HTTPS_CERT=/etc/apache2/ssl/mmdvm-dashboard-mqtt/server.crt
-HTTPS_KEY=/etc/apache2/ssl/mmdvm-dashboard-mqtt/server.key
-
-if [[ $RESUME == true && -f $HTTPS_SITE &&
-      -s $HTTPS_CERT && -s $HTTPS_KEY ]]; then
-  msg "Reusing HTTPS configuration from interrupted installation." \
-      "Riutilizzo configurazione HTTPS dell'installazione interrotta."
-  a2ensite mmdvm-dashboard-mqtt-ssl >/dev/null ||
-    die "Cannot enable recovered HTTPS site." "Impossibile abilitare il sito HTTPS recuperato."
-  printf 'reused\\n' > "$HTTPS_RESULT_FILE"
-else
-  if [[ $RESUME == true && ( -e $HTTPS_SITE ||
-        -e $HTTPS_CERT || -e $HTTPS_KEY ) ]]; then
-    die "Incomplete HTTPS files require manual review." \
-        "File HTTPS incompleti: necessaria verifica manuale."
-  fi
-  if ! LANGUAGE="$LANGUAGE" HTTPS_RESULT_FILE="$HTTPS_RESULT_FILE" \
-      bash "$SRC/scripts/setup-https.sh" "$HTTPS_NAME" "$WEBROOT"; then
-    die "HTTPS preparation failed." "Preparazione HTTPS non riuscita."
-  fi
+if ! LANGUAGE="$LANGUAGE" HTTPS_RESULT_FILE="$HTTPS_RESULT_FILE" \
+    bash "$SRC/scripts/setup-https.sh" "$HTTPS_NAME" "$WEBROOT"; then
+  die "HTTPS preparation failed." "Preparazione HTTPS non riuscita."
 fi
 HTTPS_RESULT=$(cat "$HTTPS_RESULT_FILE")
 case "$HTTPS_RESULT" in
@@ -575,7 +460,6 @@ systemctl enable --now mmdvm-mqtt-collector.service mmdvm-dashboard-mqtt.service
 # Do not enable Telegram until configured by the administrator.
 systemctl disable mmdvm-telegram-bot.service >/dev/null 2>&1 || true
 HTTPS_COMMITTED=1
-mv -f -- "$MARKER" "$COMPLETE"
 trap - EXIT INT TERM
 rm -f -- "$HTTPS_RESULT_FILE"
 msg "Telegram service installed but disabled." "Servizio Telegram installato ma disabilitato."
@@ -586,3 +470,8 @@ msg "Dashboard: /index.html | Administration: /api/admin/" "Dashboard: /index.ht
 msg "Admin setup token: $STATE/setup-token" "Token configurazione Admin: $STATE/setup-token"
 msg "Active services: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector" "Servizi attivi: mmdvm-dashboard-mqtt, mmdvm-mqtt-collector"
 msg "Telegram: manual activation after configuration." "Telegram: attivazione manuale dopo la configurazione."
+
+if [[ $DEPLOYMENT_MODE == remote ]]; then
+  msg 'Install agent/install.sh on the repeater and use the same broker, node ID and prefix.' \
+      'Installare agent/install.sh sul ripetitore con lo stesso broker, identificativo e prefisso.'
+fi

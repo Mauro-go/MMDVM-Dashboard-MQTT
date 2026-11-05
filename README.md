@@ -9,7 +9,7 @@ Dashboard web per ripetitori radioamatoriali MMDVMHost con raccolta eventi MQTT,
 
 Web dashboard for MMDVMHost amateur-radio repeaters, with MQTT event collection, remote Agent telemetry, administration and optional Telegram notifications.
 
-> **Versione documentata / Documented version:** branch `test-universal-installer`, installer aggiornati al 4 novembre 2026. La sintassi degli installer è stata verificata; non è ancora dichiarato un collaudo end-to-end completo. / Installer syntax has been checked; a complete end-to-end installation test is not yet claimed.
+> **Versione documentata / Documented version:** branch `main`, installer universali. La sintassi degli installer è stata verificata; non è ancora dichiarato un collaudo end-to-end completo. / Installer syntax has been checked; a complete end-to-end installation test is not yet claimed.
 
 ---
 
@@ -33,7 +33,7 @@ Il progetto **non installa né riconfigura MMDVMHost** e non abilita automaticam
 - Per la Dashboard: Apache e Python 3; l'installer installa i pacchetti necessari, incluso Apache se assente.
 - Per l'Agent: `MMDVM.ini` leggibile, Python 3 e accesso al broker MQTT.
 - Accesso MQTT sulla porta configurata (normalmente `1883`) tra le macchine; accesso web HTTPS alla Dashboard.
-- Repository **completo**, non il solo ZIP contenente gli installer.
+- Repository **completo** per la Dashboard; per il solo Agent è disponibile lo ZIP autonomo.
 
 **È preferibile una macchina nuova**, soprattutto per evitare conflitti web, ma non è indispensabile. L'installer Dashboard rifiuta una precedente installazione in `/opt/mmdvm-dashboard-mqtt`, servizi omonimi o una configurazione Apache API omonima; non è un aggiornamento in-place. Su un server con altri siti Apache, conserva i VirtualHost esistenti, ma copia il frontend in `/var/www/html/`, può sostituire file omonimi **solo dopo conferma e backup**, e abilita il proxy `/api/` globalmente. Verificare attentamente i conflitti prima di procedere. Non garantisce una ripresa automatica dopo un'installazione interrotta.
 
@@ -41,11 +41,11 @@ L'installer Agent rifiuta file o servizi Agent già esistenti e non li sovrascri
 
 ### 3. Scaricare il repository
 
-Per installare il branch di test:
+Per installare la versione ufficiale:
 
 ```bash
 apt update && apt install -y git
-git clone -b test-universal-installer https://github.com/Mauro-go/MMDVM-Dashboard-MQTT.git /opt/MMDVM-Dashboard-MQTT
+git clone -b main https://github.com/Mauro-go/MMDVM-Dashboard-MQTT.git /opt/MMDVM-Dashboard-MQTT
 cd /opt/MMDVM-Dashboard-MQTT
 ```
 
@@ -82,12 +82,22 @@ Indirizzi previsti, **se il VirtualHost HTTPS serve il frontend installato**:
 
 ### 5. Installazione automatica Agent sul ripetitore
 
-Copiare sul ripetitore **l'intera directory `agent/`** del repository (almeno `agent.py`, `install.sh` e `mmdvm-agent.service`). Eseguire come `root`:
+Scaricare sul ripetitore il pacchetto autonomo **[MMDVM-MQTT-Agent.zip](MMDVM-MQTT-Agent.zip)** direttamente dal branch ufficiale. Non è necessario clonare l'intero repository.
+
+Eseguire come `root`:
 
 ```bash
-cd /percorso/del/repository/agent
+apt update && apt install -y wget unzip
+mkdir -p /root/mmdvm-agent-installer
+cd /root/mmdvm-agent-installer
+wget -O MMDVM-MQTT-Agent.zip https://github.com/Mauro-go/MMDVM-Dashboard-MQTT/raw/refs/heads/main/MMDVM-MQTT-Agent.zip
+unzip MMDVM-MQTT-Agent.zip
 bash install.sh
 ```
+
+Lo ZIP contiene `install.sh`, `agent.py`, `mmdvm-agent.service`, `agent.json.example` e `broker.json.example`. Non contiene password o configurazioni personali.
+
+In alternativa, clonare il repository completo e avviare `bash install.sh` dalla directory `agent/`.
 
 L'installer chiede lingua, posizione del broker, percorso `MMDVM.ini`, Node ID (propone il callsign letto da `[General] Callsign`), prefisso MQTT, intervallo di pubblicazione (minimo 5 secondi), credenziali ed eventuale TLS. Se il broker locale non esiste e viene scelto come nuovo, installa Mosquitto con autenticazione; se esiste, ne conserva la configurazione.
 
@@ -261,7 +271,7 @@ Use Debian 12/13 or Debian-based Raspberry Pi OS with `apt`, `systemd`, root pri
 
 ```bash
 apt update && apt install -y git
-git clone -b test-universal-installer https://github.com/Mauro-go/MMDVM-Dashboard-MQTT.git /opt/MMDVM-Dashboard-MQTT
+git clone -b main https://github.com/Mauro-go/MMDVM-Dashboard-MQTT.git /opt/MMDVM-Dashboard-MQTT
 cd /opt/MMDVM-Dashboard-MQTT
 ```
 
@@ -284,12 +294,22 @@ Expected URLs, when the HTTPS virtual host serves the frontend: `https://HOST/` 
 
 ### 5. Automatic Agent installation
 
-Copy the complete `agent/` directory to the repeater and run as root:
+Download the standalone **[MMDVM-MQTT-Agent.zip](MMDVM-MQTT-Agent.zip)** package directly to the repeater. Cloning the full repository is not required.
+
+Run as root:
 
 ```bash
-cd /path/to/repository/agent
+apt update && apt install -y wget unzip
+mkdir -p /root/mmdvm-agent-installer
+cd /root/mmdvm-agent-installer
+wget -O MMDVM-MQTT-Agent.zip https://github.com/Mauro-go/MMDVM-Dashboard-MQTT/raw/refs/heads/main/MMDVM-MQTT-Agent.zip
+unzip MMDVM-MQTT-Agent.zip
 bash install.sh
 ```
+
+The ZIP includes `install.sh`, `agent.py`, `mmdvm-agent.service`, `agent.json.example` and `broker.json.example`, without personal credentials or configurations.
+
+Alternatively, clone the full repository and run `bash install.sh` from its `agent/` directory.
 
 The prompts cover language, local/new or remote/existing broker, `MMDVM.ini` path, Node ID (default from `[General] Callsign`), exact topic prefix, publishing interval (at least five seconds), credentials and optional TLS. If requested, the installer creates a new authenticated Mosquitto broker; it preserves an existing broker. The service is named **`mmdvm-agent.service`**. It does not restart radio services. Existing Agent installations are not overwritten or upgraded automatically.
 
@@ -416,7 +436,8 @@ Never commit MQTT credentials, Telegram tokens, Admin secrets or databases to Gi
 ## Repository and status
 
 - Repository: https://github.com/Mauro-go/MMDVM-Dashboard-MQTT
-- Test branch: https://github.com/Mauro-go/MMDVM-Dashboard-MQTT/tree/test-universal-installer
+- Official branch: https://github.com/Mauro-go/MMDVM-Dashboard-MQTT/tree/main
+- Agent ZIP: [MMDVM-MQTT-Agent.zip](MMDVM-MQTT-Agent.zip)
 - Main installer: `install.sh`
 - Agent installer: `agent/install.sh`
 - HTTPS helper: `scripts/setup-https.sh`

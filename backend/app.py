@@ -286,10 +286,19 @@ def api_config():
         },
     }
     if remote_agent.enabled():
-        result["repeater"].update(remote_agent.repeater_settings())
+        automatic = remote_agent.repeater_settings()
         result["agent"] = remote_agent.metadata()
     else:
-        result["repeater"].update(local_radio_settings())
+        automatic = local_radio_settings()
+
+    # Solo i valori automatici effettivamente presenti prevalgono.
+    # Gli altri restano configurabili tramite dashboard.ini.
+    managed = {
+        key: value for key, value in automatic.items()
+        if value is not None and str(value).strip()
+    }
+    result["repeater"].update(managed)
+    result["repeater_managed_fields"] = list(managed)
     return jsonify(result)
 
 

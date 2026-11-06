@@ -107,8 +107,28 @@ if [[ $ANSWER == 1 ]]; then
   HOST=127.0.0.1
   MQTT_PORT=1883
   if dpkg-query -W -f='${Status}' mosquitto 2>/dev/null | grep -qx 'install ok installed'; then
-    msg 'Existing Mosquitto will NOT be reconfigured.' 'Mosquitto esistente NON verrà riconfigurato.'
-    systemctl is-active --quiet mosquitto || die 'Existing Mosquitto is inactive; check manually.' 'Mosquitto esistente non attivo; verificare manualmente.'
+    if [[ -e /etc/mosquitto/conf.d/mmdvm-dashboard.conf && ! -f /etc/mosquitto/mmdvm-dashboard.passwd ]] ||
+       [[ -e /etc/mosquitto/mmdvm-dashboard.passwd && ! -f /etc/mosquitto/conf.d/mmdvm-dashboard.conf ]]; then
+      die 'Incomplete dashboard Mosquitto configuration; manual inspection required.' 'Configurazione Mosquitto della dashboard incompleta; necessaria verifica manuale.'
+    fi
+    if [[ -f /etc/mosquitto/conf.d/mmdvm-dashboard.conf && -f /etc/mosquitto/mmdvm-dashboard.passwd ]]; then
+      msg 'Existing dashboard Mosquitto configuration detected; it will not be changed.' 'Configurazione Mosquitto della dashboard già presente; non verrà modificata.'
+      systemctl is-active --quiet mosquitto || die 'Existing Mosquitto is inactive; check manually.' 'Mosquitto esistente non attivo; verificare manualmente.'
+    else
+      msg 'Mosquitto is installed but dashboard configuration is missing.' 'Mosquitto installato, ma configurazione dashboard assente.'
+      if find /etc/mosquitto/conf.d -maxdepth 1 -type f ! -name README -print -quit 2>/dev/null | grep -q .; then
+        msg 'Other Mosquitto configurations detected; preserving existing broker.' 'Rilevate altre configurazioni Mosquitto; broker esistente preservato.'
+        systemctl is-active --quiet mosquitto || die 'Existing Mosquitto is inactive; check manually.' 'Mosquitto esistente non attivo; verificare manualmente.'
+      else
+        # Only complete an existing broker with the standard Debian configuration.
+        MOSQ_MAIN=$(grep -Ev '^[[:space:]]*(#|$)' /etc/mosquitto/mosquitto.conf 2>/dev/null | sed 's/[[:space:]]*$//' | sort)
+        MOSQ_STANDARD=$(printf '%s\n'           'persistence true'           'persistence_location /var/lib/mosquitto/'           'log_dest file /var/log/mosquitto/mosquitto.log'           'include_dir /etc/mosquitto/conf.d' | sort)
+        [[ "$MOSQ_MAIN" == "$MOSQ_STANDARD" ]] ||
+          die 'Existing Mosquitto configuration is not standard; manual inspection required.' 'Configurazione Mosquitto esistente non standard; necessaria verifica manuale.'
+        MOSQ_NEW=true
+        msg 'Incomplete Mosquitto setup detected; dashboard configuration will be completed.' 'Rilevata configurazione Mosquitto incompleta; verrà completata quella della dashboard.'
+      fi
+    fi
   else
     MOSQ_NEW=true
     msg 'Mosquitto will be installed with authenticated LAN listener on port 1883.' 'Mosquitto verrà installato con accesso LAN autenticato sulla porta 1883.'
@@ -204,7 +224,7 @@ MQTT_SECRET_FILE=$(mktemp)
 chmod 0600 "$MQTT_SECRET_FILE"
 printf '%s' "$MQTT_PASSWORD" > "$MQTT_SECRET_FILE"
 unset MQTT_PASSWORD
-trap 'rm -f -- "${MQTT_SECRET_FILE:-}"' EXIT
+trap 'rm -f -- "${MQTT_SECRET_FILE:-}" "${MOSQ_PASSWD_TMP:-}"' EXIT
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 if dpkg-query -W -f='${Status}' apache2 2>/dev/null | grep -qx 'install ok installed'; then
@@ -217,9 +237,15 @@ if [[ $MOSQ_NEW == true ]]; then apt-get install -y mosquitto mosquitto-clients;
 
 if [[ $MOSQ_NEW == true ]]; then
   install -d -m 0755 /etc/mosquitto/conf.d
-  mosquitto_passwd -c -i /etc/mosquitto/mmdvm-dashboard.passwd "$MQTT_USER" < "$MQTT_SECRET_FILE" >/dev/null
-  chown mosquitto:mosquitto /etc/mosquitto/mmdvm-dashboard.passwd
-  chmod 0600 /etc/mosquitto/mmdvm-dashboard.passwd
+  # Create hashed credentials without exposing the password in process arguments.
+  MOSQ_PASSWD_TMP=$(mktemp /etc/mosquitto/.mmdvm-dashboard.passwd.XXXXXXXX)
+  chmod 0600 "$MOSQ_PASSWD_TMP"
+  printf '%s:%s\n' "$MQTT_USER" "$(cat "$MQTT_SECRET_FILE")" > "$MOSQ_PASSWD_TMP"
+  mosquitto_passwd -U "$MOSQ_PASSWD_TMP"
+  chown mosquitto:mosquitto "$MOSQ_PASSWD_TMP"
+  chmod 0600 "$MOSQ_PASSWD_TMP"
+  mv -- "$MOSQ_PASSWD_TMP" /etc/mosquitto/mmdvm-dashboard.passwd
+  MOSQ_PASSWD_TMP=
   cat > /etc/mosquitto/conf.d/mmdvm-dashboard.conf <<'MOSQ'
 listener 1883 0.0.0.0
 allow_anonymous false
@@ -270,7 +296,9 @@ PYSET
 chown root:"$SERVICE_USER" "$APP/config/dashboard.ini"
 chmod 0660 "$APP/config/dashboard.ini"
 chown "$SERVICE_USER:$SERVICE_USER" "$APP/data/mqtt-settings.json"
-rm -f -- "$MQTT_SECRET_FILE"; MQTT_SECRET_FILE=
+rm -f -- "$MQTT_SECRET_FILE" "${MOSQ_PASSWD_TMP:-}"
+MQTT_SECRET_FILE=
+MOSQ_PASSWD_TMP=
 trap - EXIT
 
 # Local databases are managed on the DASHBOARD host in both deployment modes.
@@ -425,6 +453,7 @@ trap https_install_cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 cat > /etc/apache2/conf-available/mmdvm-dashboard-mqtt-api.conf <<EOF
+ProxyPreserveHost On
 ProxyPass /api/ http://127.0.0.1:8089/api/
 ProxyPassReverse /api/ http://127.0.0.1:8089/api/
 EOF

@@ -48,6 +48,7 @@ if [[ $MODE == --check ]]; then
   exit 0
 fi
 read -r -p 'Nominativo primo ripetitore (es. IR3ZZO): ' CALLSIGN
+CALLSIGN=${CALLSIGN%$'\r'}
 [[ "$CALLSIGN" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{1,19}$ ]] || fail 'Nominativo non valido'
 read -r -p "Node ID Agent [$CALLSIGN]: " NODE_ID
 NODE_ID=${NODE_ID:-$CALLSIGN}
@@ -230,11 +231,19 @@ systemctl enable --now mosquitto
 systemctl restart mosquitto
 systemctl enable --now mmdvm-multi-collector.service mmdvm-dashboard-multi.service
 systemctl enable --now apache2
+systemctl reload apache2
 systemctl is-active --quiet mosquitto
 systemctl is-active --quiet apache2
 systemctl is-active --quiet mmdvm-dashboard-multi
 systemctl is-active --quiet mmdvm-multi-collector
 info "Dashboard: https://$HTTPS_NAME/"
 info "Admin: https://$HTTPS_NAME/api/admin/"
-info "Setup token: $STATE/setup-token (leggere localmente, non pubblicare)"
+echo
+echo "=============================================="
+echo "       CONFIGURAZIONE AMMINISTRATORE"
+echo "=============================================="
+echo "Setup token: $(cat "$STATE/setup-token")"
+echo "Conservare il token in luogo sicuro."
+echo "Non pubblicarlo e non condividerlo."
+echo "=============================================="
 info 'ATTENZIONE: MQTT su TCP/1883 non è cifrato. Usare LAN/VPN o configurare TLS prima di esporlo su Internet.'

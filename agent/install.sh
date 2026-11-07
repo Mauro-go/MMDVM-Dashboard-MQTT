@@ -173,7 +173,7 @@ for name, data in [('agent.json', agent), ('broker.json', broker)]:
     (app / name).chmod(0o600)
 PY
 rm -f -- "$SECRET_FILE"; SECRET_FILE=''
-unset SECRET_FILE MQTT_USER
+unset MQTT_USER
 
 say 'Verifica Agent...' 'Checking Agent...'
 python3 -B "$APP/agent.py" --config "$APP/agent.json" --dry-run >/dev/null || fail 'verifica Agent fallita, servizio non installato.' 'Agent dry-run failed; service not installed.'

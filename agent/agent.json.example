@@ -1,6 +1,6 @@
 {
   "node_id": "N0CALL",
-  "topic_prefix": "mmdvm/N0CALL",
+  "topic_prefix": "mmdvm/N0CALL/agent/v1",
   "interval_seconds": 10,
   "mmdvm_ini": "/etc/MMDVM.ini",
   "broker_settings_file": "/opt/mmdvm-agent/broker.json"

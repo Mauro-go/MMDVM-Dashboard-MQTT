@@ -7,9 +7,6 @@ SERVICE=mmdvm-agent.service
 SOURCE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LANGUAGE=it
 SECRET_FILE=''
-MOSQ_CONF=/etc/mosquitto/conf.d/mmdvm-agent.conf
-MOSQ_AUTH=/etc/mosquitto/mmdvm-agent.passwd
-MOSQ_CREATED=false
 AGENT_CREATED=false
 SERVICE_CREATED=false
 
@@ -65,23 +62,8 @@ for f in "$APP/agent.py" "$APP/agent.json" "$APP/broker.json" "/etc/systemd/syst
   [[ ! -e $f ]] || fail "file già esistente: $f. Nessuna sovrascrittura." "file already exists: $f. Refusing to overwrite."
 done
 
-say 'Broker MQTT: 1) Locale sul ripetitore  2) Remoto/esistente' 'MQTT broker: 1) Local on repeater  2) Remote/existing'
-while :; do
-  ask BROKER_CHOICE 'Posizione broker (1/2)' 'Broker location (1/2)' '2'
-  [[ $BROKER_CHOICE == 1 || $BROKER_CHOICE == 2 ]] && break
-  say 'Scelta non valida, riprovare.' 'Invalid choice, try again.'
-done
-MOSQ_EXISTING=true
-if [[ $BROKER_CHOICE == 1 ]]; then
-  if dpkg-query -W -f='${Status}' mosquitto 2>/dev/null | grep -qx 'install ok installed'; then
-    say 'Mosquitto esistente: configurazione preservata.' 'Existing Mosquitto: configuration preserved.'
-    systemctl is-active --quiet mosquitto || fail 'Mosquitto esistente non attivo.' 'Existing Mosquitto is inactive.'
-  else
-    MOSQ_EXISTING=false
-    [[ ! -e $MOSQ_CONF && ! -e $MOSQ_AUTH ]] || fail 'configurazione Mosquitto già presente.' 'Mosquitto configuration already exists.'
-    say 'Mosquitto verrà installato con autenticazione.' 'Mosquitto will be installed with authentication.'
-  fi
-fi
+# L'Agent usa esclusivamente il broker della Dashboard remota.
+# Nessuna installazione o modifica di Mosquitto sul ripetitore.
 
 MMDVM_DEFAULT=/etc/MMDVM-Host.ini
 if [[ -f "$SOURCE_DIR/detect-mmdvm-config.py" ]]; then
@@ -99,7 +81,6 @@ DETECTED_NODE=$(awk -F= '
 DETECTED_NODE=${DETECTED_NODE:-N0CALL}
 while :; do
   ask NODE_ID 'Identificativo ponte (node_id)' 'Repeater identifier (node_id)' "$DETECTED_NODE"
-  NODE_ID=${NODE_ID,,}
   [[ $NODE_ID =~ ^[A-Za-z0-9_-]+$ ]] && break
   say 'node_id non valido, riprovare.' 'Invalid node_id, try again.'
 done
@@ -115,30 +96,41 @@ ask INTERVAL 'Intervallo pubblicazione in secondi' 'Publishing interval in secon
 (( 10#$INTERVAL >= 5 )) || fail 'intervallo minimo 5 secondi.' 'minimum interval is 5 seconds.'
 INTERVAL=$((10#$INTERVAL))
 
-if [[ $MOSQ_EXISTING == false ]]; then
-  MQTT_HOST=127.0.0.1; MQTT_PORT=1883; MQTT_TLS=false
-  ask MQTT_USER 'Nuovo utente Mosquitto' 'New Mosquitto username' 'mmdvm-agent'
-  [[ $MQTT_USER =~ ^[A-Za-z0-9_.-]+$ ]] || fail 'username non valido.' 'invalid username.'
-  ask_secret MQTT_PASSWORD 'Nuova password Mosquitto (non visualizzata)' 'New Mosquitto password (hidden)'
-  [[ -n $MQTT_PASSWORD ]] || fail 'password obbligatoria per il nuovo broker.' 'password required for new broker.'
-else
-  ask MQTT_HOST 'Indirizzo broker MQTT esistente' 'Existing MQTT broker address' '127.0.0.1'
+say 'Connessione al broker della Dashboard remota' 'Connection to remote Dashboard broker'
+
+while :; do
+  ask MQTT_HOST 'IP o hostname del broker Dashboard' 'Dashboard broker IP or hostname' ''
+  [[ -n $MQTT_HOST ]] && break
+  say 'Indirizzo obbligatorio.' 'Broker address is required.'
+done
+
+while :; do
   ask MQTT_PORT 'Porta broker MQTT' 'MQTT broker port' '1883'
-  [[ -n $MQTT_HOST ]] || fail 'indirizzo broker vuoto.' 'empty broker address.'
-  [[ $MQTT_PORT =~ ^[0-9]+$ ]] || fail 'porta non numerica.' 'port must be numeric.'
-  (( 10#$MQTT_PORT >= 1 && 10#$MQTT_PORT <= 65535 )) || fail 'porta fuori intervallo.' 'port out of range.'
-  MQTT_PORT=$((10#$MQTT_PORT))
-  if [[ $LANGUAGE == en ]]; then read -r -p 'MQTT username (blank if anonymous): ' MQTT_USER; else read -r -p 'Username MQTT (vuoto se anonimo): ' MQTT_USER; fi
-  ask_secret MQTT_PASSWORD 'Password MQTT (non visualizzata, vuota se non richiesta)' 'MQTT password (hidden, blank if not required)'
-  ask TLS_REPLY 'Abilitare TLS? (s/n)' 'Enable TLS? (y/n)' 'n'
-  case "${TLS_REPLY,,}" in s|si|sì|y|yes) MQTT_TLS=true ;; n|no) MQTT_TLS=false ;; *) fail 'risposta TLS non valida.' 'invalid TLS answer.' ;; esac
+  if [[ $MQTT_PORT =~ ^[0-9]+$ ]] &&
+     (( 10#$MQTT_PORT >= 1 && 10#$MQTT_PORT <= 65535 )); then
+    MQTT_PORT=$((10#$MQTT_PORT))
+    break
+  fi
+  say 'Porta non valida.' 'Invalid MQTT port.'
+done
+
+if [[ $LANGUAGE == en ]]; then
+  read -r -p 'MQTT username (blank if anonymous): ' MQTT_USER
+else
+  read -r -p 'Username MQTT (vuoto se anonimo): ' MQTT_USER
 fi
+
+ask_secret MQTT_PASSWORD 'Password MQTT (non visualizzata)' 'MQTT password (hidden)'
+
+ask TLS_REPLY 'Abilitare TLS? (s/n)' 'Enable TLS? (y/n)' 'n'
+case "${TLS_REPLY,,}" in
+  s|si|sì|y|yes) MQTT_TLS=true ;;
+  n|no) MQTT_TLS=false ;;
+  *) fail 'Risposta TLS non valida.' 'Invalid TLS answer.' ;;
+esac
 
 say "MMDVM.ini: $MMDVM_INI | Nodo: $NODE_ID | Topic: $TOPIC_PREFIX" "MMDVM.ini: $MMDVM_INI | Node: $NODE_ID | Topic: $TOPIC_PREFIX"
 say "Broker Agent: $MQTT_HOST:$MQTT_PORT | TLS: $MQTT_TLS" "Agent broker: $MQTT_HOST:$MQTT_PORT | TLS: $MQTT_TLS"
-if [[ $MOSQ_EXISTING == false ]]; then
-  say 'Il broker sarà accessibile dalla LAN solo con credenziali; aprire la porta 1883 nel firewall se necessario.' 'Broker will accept LAN connections only with credentials; allow port 1883 in firewall if needed.'
-fi
 confirm 'Procedere con installazione?' 'Continue with installation?' || { say 'Annullato.' 'Cancelled.'; exit 0; }
 
 # Store the password outside argv and the exported environment.
@@ -150,27 +142,7 @@ unset MQTT_PASSWORD
 say 'Installazione dipendenze...' 'Installing dependencies...'
 apt-get update
 packages=(python3 python3-paho-mqtt python3-psutil)
-if [[ $MOSQ_EXISTING == false ]]; then packages+=(mosquitto mosquitto-clients); fi
 DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
-
-if [[ $MOSQ_EXISTING == false ]]; then
-  # Only create files in a previously unused dedicated namespace.
-  install -d -m 755 /etc/mosquitto/conf.d
-  mosquitto_passwd -c -i "$MOSQ_AUTH" "$MQTT_USER" < "$SECRET_FILE" >/dev/null
-  chmod 600 "$MOSQ_AUTH"
-  chown mosquitto:mosquitto "$MOSQ_AUTH"
-  cat > "$MOSQ_CONF" <<CONF
-# Managed by MMDVM Agent installer. Do not edit other Mosquitto files.
-listener 1883 0.0.0.0
-allow_anonymous false
-password_file $MOSQ_AUTH
-CONF
-  chmod 644 "$MOSQ_CONF"
-  MOSQ_CREATED=true
-  systemctl enable mosquitto
-  systemctl restart mosquitto
-  systemctl is-active --quiet mosquitto || fail 'Mosquitto non attivo dopo installazione.' 'Mosquitto inactive after installation.'
-fi
 
 install -d -o root -g root -m 700 "$APP"
 install -o root -g root -m 644 "$SOURCE_DIR/agent.py" "$APP/agent.py"

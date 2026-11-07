@@ -299,8 +299,9 @@ class Registry:
                 raise ValueError('MQTT topic and Agent prefix must be exact, without wildcards')
         if not re.fullmatch(r'[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*', prefix):
             raise ValueError('Invalid Agent prefix')
-        if prefix.split('/')[-1] != node_id:
-            raise ValueError('Agent prefix must end with /node_id')
+        # Agent v1 defaults to mmdvm/<node_id>/agent/v1.
+        # Custom prefixes are allowed; MQTT is case-sensitive.
+        # Prefix uniqueness and overlap are checked below.
         if topic == prefix or topic.startswith(prefix + '/'):
             raise ValueError('Event topic must be separate from the Agent prefix')
         host = str(data.get('host', '127.0.0.1')).strip()

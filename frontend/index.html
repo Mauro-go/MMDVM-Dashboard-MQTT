@@ -1343,7 +1343,7 @@ function renderHeard() {
 
         const lossText = e.direction === "NET" &&
             e.loss !== null && e.loss !== undefined
-            ? e.loss + "% loss" : "";
+            ? Number(e.loss).toFixed(1) + "% loss" : "";
 
         const modeClass = "mode-" + e.mode;
 

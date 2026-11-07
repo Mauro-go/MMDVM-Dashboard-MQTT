@@ -18,9 +18,11 @@ from update_backup import (
 from update_journal import save_journal, load_journal
 from update_lock import update_lock
 from update_paths import transaction_paths
+from update_deployment import get_profile
 from update_atomic import replace_component, check_update_residues
 from update_rename_plan import create_rename_plan, save_rename_plan
 from update_tracked_swap import tracked_swap
+from update_recovery import inspect_transaction_recovery
 
 COMPONENTS = ("backend", "frontend", "admin", "VERSION")
 
@@ -29,10 +31,15 @@ COMPONENTS = ("backend", "frontend", "admin", "VERSION")
 
 
 def check_previous_transactions(backup_root):
-    """Rifiuta transazioni precedenti incomplete o non leggibili."""
+    """Blocca nuove operazioni finché esistono transazioni irrisolte."""
+    backup_root = Path(backup_root)
+
     for directory in sorted(backup_root.iterdir()):
         if directory.is_symlink():
-            raise RuntimeError("Transazione con collegamento simbolico")
+            raise RuntimeError(
+                "Transazione con collegamento simbolico"
+            )
+
         if not directory.is_dir():
             continue
 
@@ -45,10 +52,38 @@ def check_previous_transactions(backup_root):
 
         journal = load_journal(journal_path)
 
-        if journal["state"] not in {"completed", "rolled_back"}:
-            raise RuntimeError(
-                "Transazione incompleta: " + directory.name
+        if journal["state"] in {"completed", "rolled_back"}:
+            if journal.get("pending_component") is not None:
+                raise RuntimeError(
+                    "Transazione conclusa con operazione pendente"
+                )
+            continue
+
+        transaction_id = directory.name
+
+        try:
+            result = inspect_transaction_recovery(
+                backup_root,
+                transaction_id,
             )
+        except (OSError, ValueError, TypeError, RuntimeError) as exc:
+            raise RuntimeError(
+                "Aggiornamenti bloccati: transazione "
+                + transaction_id
+                + " non verificabile; intervento manuale richiesto"
+            ) from exc
+
+        if result.get("recovery_required") and result.get("backup_verified"):
+            raise RuntimeError(
+                "Aggiornamenti bloccati: recupero richiesto per "
+                + transaction_id
+                + " (stato: " + result["state"] + ")"
+            )
+
+        raise RuntimeError(
+            "Aggiornamenti bloccati: transazione non conclusa "
+            + transaction_id
+        )
 
 
 def run_simulated_update(
@@ -58,14 +93,31 @@ def run_simulated_update(
     *,
     fail_after=None,
     tracked=False,
+    mode="standard",
+    production=False,
 ):
     """Aggiorna una copia di prova, con rollback sugli errori Python.
 
     Non garantisce recupero automatico dopo SIGKILL o blackout.
     """
+    # Valida il profilo, senza modificare servizi o percorsi.
+    profile = get_profile(mode)
+
     application = Path(application).resolve(strict=True)
     release = Path(release).resolve(strict=True)
     backup_root = Path(backup_root).resolve(strict=True)
+
+    if production:
+        expected = Path(profile["directory"]).resolve()
+
+        if application != expected:
+            raise ValueError(
+                f"Percorso non autorizzato per {mode}: {application}"
+            )
+
+        raise RuntimeError(
+            "Aggiornamenti di produzione non ancora abilitati"
+        )
 
     if not application.is_dir() or not release.is_dir():
         raise ValueError("Directory applicazione/release non valida")

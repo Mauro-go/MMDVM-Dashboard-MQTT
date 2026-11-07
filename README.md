@@ -559,3 +559,110 @@ Private configuration files and broker credentials are excluded.
 **Remote Agent installation, backup and rollback are not yet implemented.
 The update indication is a development feature and does not perform
 remote installation.**
+
+
+---
+
+<!-- MULTI_LIVE_UPDATE_DOCUMENTATION_V1 -->
+
+## Multi: installazione e aggiornamenti collaudati / Multi: installation and tested updates
+
+### Italiano
+
+**Stato:** versione `0.0.0-dev` in sviluppo. Il 7 novembre 2026 il motore di aggiornamento Multi è stato collaudato con successo su un server di test. Non è ancora certificato per distribuzioni generalizzate o aggiornamenti automatici in produzione.
+
+#### Componenti e architettura
+
+- **Standard:** dashboard per un singolo ripetitore, installata da `install.sh` in `/opt/mmdvm-dashboard-mqtt`; backend locale sulla porta `8089`.
+- **Multi:** dashboard per più ripetitori, con configurazioni, dati e sessioni amministrative separati. L'installer `install-multi.sh` usa `/opt/mmdvm-dashboard-multi`; backend locale sulla porta `8090`.
+- **Agent:** `agent/install.sh` installa il servizio `mmdvm-agent.service` sul ripetitore. Legge i dati MMDVMHost e li pubblica su un broker MQTT già disponibile; **non installa né riconfigura Mosquitto sul ripetitore**.
+
+Il checkout di sviluppo usato per il collaudo è `/opt/MMDVM-Dashboard-MQTT-Multi`, distinto dalla destinazione dell'installer. Per la gestione dei nodi, le URL e l'isolamento dei dati consultare [MULTI.md](MULTI.md).
+
+#### Installazione
+
+Da una copia completa del repository, come root:
+
+```bash
+# Standard (interattivo)
+bash install.sh
+
+# Multi: verifica preventiva, senza modifiche
+bash install-multi.sh --check
+
+# Multi: installazione effettiva, solo su sistema Debian dedicato
+bash install-multi.sh --install
+```
+
+**Attenzione:** non eseguire gli installer su una dashboard già funzionante per aggiornarla. Prima di installare verificare conflitti con Apache, Mosquitto e i servizi esistenti; effettuare un backup o snapshot. Il sistema Multi espone due servizi:
+
+```bash
+systemctl status mmdvm-dashboard-multi.service
+systemctl status mmdvm-multi-collector.service
+```
+
+Il backend Multi risponde localmente su `http://127.0.0.1:8090/`. Per accesso remoto configurare HTTPS e reverse proxy. Non esporre direttamente il backend su Internet.
+
+#### Aggiornamento Multi sperimentale
+
+Il motore `scripts/update_live.py` verifica una release preparata, crea un backup, sostituisce i componenti, riavvia i servizi e controlla la salute dell'applicazione. I componenti sostituiti sono `backend/`, `frontend/`, `admin/` e `VERSION`; le directory persistenti `config/` e `data/` sono preservate.
+
+```bash
+# Eseguire dalla directory del checkout Multi
+PYTHONPATH=scripts python3 -B scripts/update_live.py --check --release /percorso/release
+
+# Applicare solo dopo snapshot/backup verificato
+MMDVM_ENABLE_REAL_UPDATE=YES PYTHONPATH=scripts python3 -B scripts/update_live.py --apply --release /percorso/release
+
+# Controllare eventuali transazioni pendenti
+PYTHONPATH=scripts python3 -B scripts/update_live.py --status
+
+# Recupero, solo dopo aver esaminato stato e log
+PYTHONPATH=scripts python3 -B scripts/update_live.py --recover
+```
+
+Nell'ambiente collaudato, gli archivi e i backup sono conservati rispettivamente in `/var/lib/mmdvm-dashboard-updates/releases/` e `/var/lib/mmdvm-dashboard-updates/backups/`. La preparazione della release assegna al servizio `mmdvm-dashboard` permessi di lettura e attraversamento appropriati (directory `750`, file ordinari `640`).
+
+**Risultati del collaudo (7 novembre 2026):** 214 test automatizzati superati. Un primo aggiornamento reale ha provocato un errore systemd `200/CHDIR` per permessi troppo restrittivi ed è stato ripristinato mediante rollback. Dopo la correzione dei permessi, un secondo aggiornamento reale è terminato con codice `0`, entrambi i servizi `active`, HTTP `200` e nessuna transazione pendente (`[]`).
+
+Questi risultati non garantiscono il recupero da interruzioni improvvise dell'alimentazione né il funzionamento con `/opt` e `/var/lib` su filesystem differenti. L'installazione degli aggiornamenti dall'interfaccia Admin e gli aggiornamenti automatici non sono dichiarati disponibili.
+
+#### Sicurezza e pubblicazione
+
+Non includere nel repository password MQTT, token amministrativi, chiavi di sessione, configurazioni personali, database, backup o log privati. Prima di ogni push controllare `git status`, `git diff --cached` e i file nuovi, anche quando `.gitignore` è presente.
+
+### English
+
+**Status:** `0.0.0-dev`, under development. The Multi update engine passed a real deployment test on November 7, 2026; it is not certified for unattended production updates.
+
+**Standard** monitors one repeater (`bash install.sh`, target `/opt/mmdvm-dashboard-mqtt`, local backend port `8089`). **Multi** monitors multiple repeaters with isolated configuration, data and admin sessions (`bash install-multi.sh --check` followed by `bash install-multi.sh --install` on a dedicated Debian system, target `/opt/mmdvm-dashboard-multi`, local backend port `8090`). The test checkout `/opt/MMDVM-Dashboard-MQTT-Multi` is a separate path. See [MULTI.md](MULTI.md) for architecture and node management.
+
+The repeater-side **Agent** is installed using `agent/install.sh` and publishes telemetry to an existing reachable MQTT broker. Its installer does not install or reconfigure Mosquitto on the repeater.
+
+The Multi services are `mmdvm-dashboard-multi.service` and `mmdvm-multi-collector.service`. Access the local backend at `http://127.0.0.1:8090/`; use HTTPS and a reverse proxy for remote access.
+
+#### Experimental Multi updater
+
+The updater replaces `backend/`, `frontend/`, `admin/` and `VERSION`, preserving persistent `config/` and `data/`. Run from the Multi checkout:
+
+```bash
+# Preflight (no changes)
+PYTHONPATH=scripts python3 -B scripts/update_live.py --check --release /path/to/release
+
+# Real update (requires a verified backup or snapshot)
+MMDVM_ENABLE_REAL_UPDATE=YES PYTHONPATH=scripts python3 -B scripts/update_live.py --apply --release /path/to/release
+
+# Transaction status
+PYTHONPATH=scripts python3 -B scripts/update_live.py --status
+
+# Recovery (inspect logs and status first)
+PYTHONPATH=scripts python3 -B scripts/update_live.py --recover
+```
+
+In the tested environment, releases and backups are stored under `/var/lib/mmdvm-dashboard-updates/`. The staged installation prepares permissions for the `mmdvm-dashboard` service account (directories `750`, regular files `640`).
+
+**Test evidence (November 7, 2026):** 214 automated tests passed. An initial real update failed with systemd `200/CHDIR` due to inaccessible directories and rolled back successfully. After correcting staging permissions, the second real update completed with exit code `0`, both services active, HTTP `200`, and no pending transactions.
+
+Sudden power-loss recovery, installations using different filesystems for `/opt` and `/var/lib`, and unattended production updates require further validation. Automatic update installation from the Admin interface is not claimed to be available.
+
+Never publish MQTT passwords, admin tokens, session secrets, private configuration, databases, backups or logs. Review staged changes before pushing to GitHub.

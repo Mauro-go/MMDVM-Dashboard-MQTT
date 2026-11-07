@@ -3,15 +3,20 @@
 
 import subprocess
 
-SERVICES = (
-    "mmdvm-dashboard-mqtt.service",
-    "mmdvm-mqtt-collector.service",
-    "mmdvm-telegram-bot.service",
-)
+from update_deployment import get_profile
+
+# Compatibilità con i test e le installazioni Standard.
+SERVICES = get_profile("standard")["services"]
 
 
-def service_state(service):
-    if service not in SERVICES:
+def services_for(mode="standard"):
+    """Servizi autorizzati per il profilo selezionato."""
+    return get_profile(mode)["services"]
+
+
+
+def service_state(service, mode="standard"):
+    if service not in services_for(mode):
         raise ValueError("Servizio non autorizzato")
 
     def query(command):
@@ -35,11 +40,11 @@ def service_state(service):
     }
 
 
-def snapshot_services():
+def snapshot_services(mode="standard"):
     """Registra lo stato dei servizi senza modificarli."""
     return {
-        service: service_state(service)
-        for service in SERVICES
+        service: service_state(service, mode)
+        for service in services_for(mode)
     }
 
 
@@ -48,7 +53,7 @@ if __name__ == "__main__":
     print(json.dumps(snapshot_services(), indent=2))
 
 
-def restore_services(snapshot, runner=None):
+def restore_services(snapshot, runner=None, mode="standard"):
     """Ripristina gli stati active/enabled salvati.
 
     Il runner permette di simulare systemctl durante i test.
@@ -56,7 +61,7 @@ def restore_services(snapshot, runner=None):
     if not isinstance(snapshot, dict):
         raise ValueError("Snapshot non valido")
 
-    if set(snapshot) != set(SERVICES):
+    if set(snapshot) != set(services_for(mode)):
         raise ValueError("Elenco servizi non valido")
 
     allowed_active = {"active", "inactive"}
@@ -81,7 +86,7 @@ def restore_services(snapshot, runner=None):
             )
 
     # Prima ripristina l'abilitazione all'avvio.
-    for service in SERVICES:
+    for service in services_for(mode):
         action = (
             "enable"
             if snapshot[service]["enabled"] == "enabled"
@@ -90,12 +95,12 @@ def restore_services(snapshot, runner=None):
         runner(["systemctl", action, service])
 
     # Ferma i servizi che erano inattivi.
-    for service in SERVICES:
+    for service in services_for(mode):
         if snapshot[service]["active"] == "inactive":
             runner(["systemctl", "stop", service])
 
     # Avvia soltanto quelli precedentemente attivi.
-    for service in SERVICES:
+    for service in services_for(mode):
         if snapshot[service]["active"] == "active":
             runner(["systemctl", "start", service])
 

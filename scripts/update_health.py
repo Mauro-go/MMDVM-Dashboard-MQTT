@@ -7,13 +7,23 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
+from update_deployment import get_profile
+
 BASE_URL = "http://127.0.0.1:8089"
+
+
+def health_url(mode="standard"):
+    """URL HTTP locale del profilo selezionato."""
+    return f"http://127.0.0.1:{get_profile(mode)['port']}"
 
 REQUIRED_STATUS_FIELDS = ("repeater", "system", "agent")
 
 
-def check_health(base_url=BASE_URL, attempts=10, delay=2):
+def check_health(base_url=None, attempts=10, delay=2, mode="standard"):
     """Verifica che le API rispondano correttamente."""
+    if base_url is None:
+        base_url = health_url(mode)
+
     if attempts < 1:
         raise ValueError("Numero tentativi non valido")
 
@@ -75,13 +85,9 @@ def check_health(base_url=BASE_URL, attempts=10, delay=2):
 
 
 
-def check_services_health(snapshot, runner=None):
+def check_services_health(snapshot, runner=None, mode="standard"):
     """Verifica i servizi che erano attivi prima dell'aggiornamento."""
-    allowed = {
-        "mmdvm-dashboard-mqtt.service",
-        "mmdvm-mqtt-collector.service",
-        "mmdvm-telegram-bot.service",
-    }
+    allowed = set(get_profile(mode)["services"])
 
     if not isinstance(snapshot, dict) or set(snapshot) != allowed:
         raise ValueError("Snapshot servizi non valido")

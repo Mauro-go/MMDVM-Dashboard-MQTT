@@ -380,6 +380,47 @@ def admin_telegram_test():
 
 
 
+@admin_bp.route("/updates/settings", methods=["GET", "POST"])
+def admin_update_settings():
+    """Preferenza aggiornamenti, senza avviare installazioni."""
+    failure = _require_auth()
+    if failure:
+        return failure
+
+    from update_settings import public, save
+
+    if request.method == "GET":
+        try:
+            return jsonify({"ok": True, "settings": public()})
+        except Exception:
+            current_app.logger.exception("Update settings read failed")
+            return _reply("Update settings unavailable", 500)
+
+    failure = _require_csrf()
+    if failure:
+        return failure
+
+    if not _same_origin():
+        return _reply("Invalid request origin", 403)
+
+    if request.content_length is None or request.content_length > 1024:
+        return _reply("Invalid request size", 413)
+
+    data = _json()
+    if data is None or set(data) != {"mode"}:
+        return _reply("Invalid update settings", 400)
+
+    try:
+        result = save(data["mode"])
+    except ValueError as exc:
+        return _reply(str(exc), 400)
+    except Exception:
+        current_app.logger.exception("Update settings save failed")
+        return _reply("Update settings save failed", 500)
+
+    return jsonify({"ok": True, "settings": result})
+
+
 @admin_bp.route("/updates", methods=["GET"])
 def admin_check_updates():
     """Verifica le release GitHub per l'amministratore autenticato."""

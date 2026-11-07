@@ -13,6 +13,7 @@ from update_journal import load_journal
 
 
 RECOVERABLE_STATES = {
+    "prepared",
     "stopped",
     "installing",
     "installed",

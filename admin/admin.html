@@ -154,6 +154,45 @@ $('fields').appendChild(wrap)}if(active==='deployment')updateDeploymentFields();
 // UPDATES_API_UI_V1
 let updateInfo=null;
 let updateChecking=false;
+let updateModePreference='manual';
+let updateModeLoaded=false;
+let updateModeLoading=false;
+let updateModeSaving=false;
+
+async function loadUpdateMode(){
+ if(updateModeLoaded || updateModeLoading)return;
+ updateModeLoading=true;
+ try{
+  const result=await api('updates/settings');
+  if(result.settings?.mode==='manual' ||
+     result.settings?.mode==='automatic'){
+   updateModePreference=result.settings.mode;
+  }
+ }catch(error){
+  console.error('Update settings:',error);
+ }finally{
+  updateModeLoaded=true;
+  updateModeLoading=false;
+  if(active==='updates')renderUpdates();
+ }
+}
+
+async function saveUpdateMode(mode){
+ if(updateModeSaving)return;
+ updateModeSaving=true;
+ try{
+  const result=await post('updates/settings',{mode},true);
+  updateModePreference=result.settings.mode;
+ }catch(error){
+  console.error('Update settings save:',error);
+  alert(lang==='it'
+   ? 'Impossibile salvare la modalità di aggiornamento'
+   : 'Unable to save update mode');
+ }finally{
+  updateModeSaving=false;
+  if(active==='updates')renderUpdates();
+ }
+}
 
 function updateStatusText(){
  const status=updateInfo?.status;
@@ -295,7 +334,7 @@ const isIt=lang==='it';
  manualRadio.type='radio';
  manualRadio.name='updateMode';
  manualRadio.value='manual';
- manualRadio.checked=true;
+ manualRadio.checked=updateModePreference==='manual';
  manual.append(manualRadio,document.createTextNode(
   isIt?' Manuale (consigliato)':' Manual (recommended)'
  ));
@@ -306,6 +345,7 @@ const isIt=lang==='it';
  autoRadio.type='radio';
  autoRadio.name='updateMode';
  autoRadio.value='automatic';
+ autoRadio.checked=updateModePreference==='automatic';
  automatic.append(autoRadio,document.createTextNode(
   isIt?' Automatico':' Automatic'
  ));
@@ -324,8 +364,12 @@ const isIt=lang==='it';
       : 'Automatic updates will be optional and disabled by default. Only stable releases will be installed, with backups and checks.');
  }
 
- manualRadio.addEventListener('change',updateDescription);
- autoRadio.addEventListener('change',updateDescription);
+ manualRadio.addEventListener('change',()=>{
+  if(manualRadio.checked)saveUpdateMode('manual');
+ });
+ autoRadio.addEventListener('change',()=>{
+  if(autoRadio.checked)saveUpdateMode('automatic');
+ });
 
  const button=document.createElement('button');
  button.type='button';
@@ -334,7 +378,13 @@ const isIt=lang==='it';
  button.textContent=isIt?'Funzione in preparazione':'Coming soon';
 
  area.append(info,heading,manual,automatic,description,button);
+ manualRadio.disabled=updateModeSaving || !updateModeLoaded;
+ autoRadio.disabled=updateModeSaving || !updateModeLoaded;
  updateDescription();
+
+ if(authenticated && !updateModeLoaded && !updateModeLoading){
+  loadUpdateMode();
+ }
 }
 
 const telegramLabels={

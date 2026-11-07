@@ -19,6 +19,7 @@ from update_paths import transaction_paths
 from update_recovery import preflight_recovery
 
 RECOVERABLE = {
+    "prepared",
     "stopped",
     "installing",
     "installed",

@@ -379,6 +379,30 @@ def admin_telegram_test():
         return _reply("Telegram test failed", 502)
 
 
+
+@admin_bp.route("/updates", methods=["GET"])
+def admin_check_updates():
+    """Verifica le release GitHub per l'amministratore autenticato."""
+    failure = _require_auth()
+    if failure:
+        return failure
+
+    try:
+        from update_checker import check_updates
+        return jsonify({"ok": True, **check_updates()})
+    except Exception:
+        current_app.logger.exception("Update check failed")
+        return jsonify({
+            "ok": True,
+            "installed": None,
+            "latest": None,
+            "status": "error",
+            "release_url": None,
+            "release_notes": None,
+            "error": "Update check failed"
+        })
+
+
 @admin_bp.route("/config", methods=["GET"])
 def admin_read_config():
     """Restituisce i percorsi soltanto all'amministratore."""

@@ -83,8 +83,16 @@ if [[ $BROKER_CHOICE == 1 ]]; then
   fi
 fi
 
-ask MMDVM_INI 'Percorso completo MMDVM.ini' 'Full path to MMDVM.ini' '/etc/MMDVM.ini'
-[[ -f $MMDVM_INI && -r $MMDVM_INI ]] || fail 'MMDVM.ini inesistente o illeggibile.' 'MMDVM.ini missing or unreadable.'
+MMDVM_DEFAULT=/etc/MMDVM-Host.ini
+if [[ -f "$SOURCE_DIR/detect-mmdvm-config.py" ]]; then
+  DETECTED_MMDVM_INI=$(python3 "$SOURCE_DIR/detect-mmdvm-config.py" 2>/dev/null) || true
+  if [[ -n $DETECTED_MMDVM_INI ]]; then
+    MMDVM_DEFAULT=$DETECTED_MMDVM_INI
+  fi
+fi
+
+ask MMDVM_INI 'File configurazione MMDVMHost (percorso completo)' 'MMDVMHost configuration file (full path)' "$MMDVM_DEFAULT"
+[[ -f $MMDVM_INI && -r $MMDVM_INI ]] || fail 'File MMDVMHost inesistente o illeggibile.' 'MMDVMHost configuration file missing or unreadable.'
 DETECTED_NODE=$(awk -F= '
   /^\[General\]/{inside=1;next} /^\[/{inside=0} inside && /^[[:space:]]*Callsign[[:space:]]*=/{gsub(/[[:space:]\r]/,"",$2);print $2;exit}
 ' "$MMDVM_INI")

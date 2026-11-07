@@ -48,7 +48,14 @@ fi
 
 # Questions are grouped by deployment and broker choice; no changes before confirmation.
 CALLSIGN=
-MMDVM_INI=/etc/MMDVM.ini
+MMDVM_INI=/etc/MMDVM-Host.ini
+DETECTED_MMDVM_INI=
+if [[ -f "$SRC/scripts/detect-mmdvm-config.py" ]]; then
+  DETECTED_MMDVM_INI=$(python3 "$SRC/scripts/detect-mmdvm-config.py" 2>/dev/null) || true
+fi
+if [[ -n $DETECTED_MMDVM_INI ]]; then
+  MMDVM_INI=$DETECTED_MMDVM_INI
+fi
 NODE_ID=
 AGENT_PREFIX=
 MQTT_USER=
@@ -85,7 +92,7 @@ choice 'Connection mode [1]: ' 'Modalità collegamento [1]: ' '^[12]$' 1
 if [[ $ANSWER == 1 ]]; then
   DEPLOYMENT_MODE=local
   while :; do
-    field 'MMDVM.ini path [/etc/MMDVM.ini]: ' 'Percorso MMDVM.ini [/etc/MMDVM.ini]: ' /etc/MMDVM.ini '^/[^[:cntrl:]]+$'
+    field "MMDVMHost config file [$MMDVM_INI]: " "File configurazione MMDVMHost [$MMDVM_INI]: " "$MMDVM_INI" '^/[^[:cntrl:]]+$'
     MMDVM_INI=$ANSWER
     [[ -r $MMDVM_INI ]] && break
     msg 'File not readable. Try again.' 'File non leggibile. Riprova.'
@@ -262,6 +269,7 @@ install -d -o root -g "$SERVICE_USER" -m 2770 "$APP/config"
 install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 0750 "$APP/data" "$STATE"
 install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 0750 "$APP/data/databases"
 for dir in backend frontend admin; do cp -a "$SRC/$dir" "$APP/"; done
+install -o root -g root -m 0644 "$SRC/VERSION" "$APP/VERSION"
 chown -R root:root "$APP/backend" "$APP/frontend" "$APP/admin"
 find "$APP/backend" "$APP/frontend" "$APP/admin" -type d -exec chmod 0755 {} +
 find "$APP/backend" "$APP/frontend" "$APP/admin" -type f -exec chmod 0644 {} +

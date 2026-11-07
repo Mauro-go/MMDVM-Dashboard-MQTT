@@ -56,7 +56,7 @@ def radio_config(settings):
                 for section, keys in FIELDS.items() if cfg.has_section(section)}
     modes = {section: cfg.getboolean(section, 'Enable', fallback=False)
              for section in ['D-Star', 'DMR', 'System Fusion', 'P25', 'NXDN', 'M17', 'POCSAG', 'FM']}
-    return {'source': 'MMDVM.ini', 'fields': selected, 'modes': modes,
+    return {'source': Path(settings['mmdvm_ini']).name, 'fields': selected, 'modes': modes,
             'policy': 'explicit_allowlist_no_credentials'}
 
 def service_states():

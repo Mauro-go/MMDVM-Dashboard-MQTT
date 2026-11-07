@@ -116,7 +116,7 @@ c.set('paths','dmr_ids',str(root/'data/databases/DMRIds.dat'))
 c.set('paths','tg_list_dir',str(root/'data/databases'))
 c.set('paths','tg_list_file','TG_List.csv')
 with p.open('w') as h: c.write(h)
-settings=dict(host='127.0.0.1',port=1883,topic='mmdvm/+/json',username=os.environ['MQTT_USER'],password=os.environ['MQTT_PASSWORD'],tls=False)
+settings=dict(host='127.0.0.1',port=1883,topic=f"mmdvm/{os.environ['CALLSIGN']}/json",username=os.environ['MQTT_USER'],password=os.environ['MQTT_PASSWORD'],tls=False)
 q=root/'data/mqtt-settings.json';q.write_text(json.dumps(settings,indent=2)+'\n');q.chmod(0o600)
 PY
 chown "$USER_NAME:$USER_NAME" "$APP/data/mqtt-settings.json"

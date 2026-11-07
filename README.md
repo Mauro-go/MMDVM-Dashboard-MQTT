@@ -542,3 +542,20 @@ Never commit MQTT credentials, Telegram tokens, Admin secrets or databases to Gi
 - HTTPS helper: `scripts/setup-https.sh`
 
 This README describes the observed installer code and its known limitations; it does not certify a production-ready end-to-end deployment.
+
+
+## MQTT Agent update status
+
+The MQTT Agent is independently versioned and reports its version through
+existing MQTT telemetry. The Dashboard can expose the installed Agent
+version and compare it with a package version.
+
+The Agent distribution archive is `MMDVM-MQTT-Agent.zip`.
+It contains the Agent code, systemd unit, configuration detector,
+installer, version file and example configuration files.
+
+Private configuration files and broker credentials are excluded.
+
+**Remote Agent installation, backup and rollback are not yet implemented.
+The update indication is a development feature and does not perform
+remote installation.**

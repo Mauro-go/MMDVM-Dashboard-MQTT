@@ -226,6 +226,37 @@ function renderUpdates(){
 
  area.append(summary,checkButton);
 
+ // AGENT_UPDATE_STATUS_UI_V1
+ const agent=updateInfo?.agent||{};
+ const agentBox=document.createElement('div');
+ agentBox.className='notice';
+ agentBox.style.marginTop='12px';
+
+ const agentTitle=document.createElement('strong');
+ agentTitle.textContent=lang==='it'?'Agent MQTT':'MQTT Agent';
+
+ const agentState=document.createElement('div');
+ const agentVersion=document.createElement('div');
+
+ const agentLabels={
+  agent_update_required:lang==='it'?'AGENT DA AGGIORNARE':'AGENT UPDATE REQUIRED',
+  up_to_date:lang==='it'?'Agent aggiornato':'Agent up to date',
+  unknown:lang==='it'?'Versione Agent non verificabile':'Agent version unavailable'
+ };
+
+ agentState.textContent=agentLabels[agent.status]||agentLabels.unknown;
+
+ agentVersion.textContent=
+  (lang==='it'?'Installata: ':'Installed: ')+
+  (agent.installed||'—')+
+  ' | '+
+  (lang==='it'?'Disponibile: ':'Available: ')+
+  (agent.available||'—');
+
+ agentBox.append(agentTitle,agentState,agentVersion);
+ area.appendChild(agentBox);
+
+
  if(updateInfo?.release_url){
   const link=document.createElement('a');
   link.href=updateInfo.release_url;

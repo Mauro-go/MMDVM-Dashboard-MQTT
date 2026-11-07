@@ -74,9 +74,21 @@ def snapshot():
             'last_seen': telemetry.get('payload', {}).get('collected_at')}
 def metadata():
     data = snapshot()
-    return {'mode':'remote', 'node_id':node_id(), 'online':data['online'],
-            'config_ok':data['config_ok'], 'last_seen':data['last_seen'],
-            'state':'online' if data['online'] else 'offline_or_stale'}
+    telemetry = data.get('telemetry', {})
+    version = telemetry.get('agent_version')
+
+    if not isinstance(version, str) or len(version) > 32:
+        version = None
+
+    return {
+        'mode': 'remote',
+        'node_id': node_id(),
+        'online': data['online'],
+        'config_ok': data['config_ok'],
+        'last_seen': data['last_seen'],
+        'agent_version': version,
+        'state': 'online' if data['online'] else 'offline_or_stale'
+    }
 def number(value):
     return value if isinstance(value, (int,float)) and not isinstance(value, bool) else None
 def system_info():

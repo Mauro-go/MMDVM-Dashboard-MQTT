@@ -388,8 +388,31 @@ def admin_check_updates():
         return failure
 
     try:
-        from update_checker import check_updates
-        return jsonify({"ok": True, **check_updates()})
+        from update_checker import check_updates, compare_agent_versions
+        from remote_agent import metadata
+
+        result = check_updates()
+
+        agent = metadata()
+        package_version = result.get("agent_package_version")
+
+        comparisons = compare_agent_versions(
+            {agent.get("node_id"): agent.get("agent_version")},
+            package_version
+        ) if package_version else []
+
+        result["agent"] = {
+            "node_id": agent.get("node_id"),
+            "installed": agent.get("agent_version"),
+            "available": package_version,
+            "status": (
+                "unknown" if not package_version or not agent.get("agent_version")
+                else "agent_update_required" if comparisons
+                else "up_to_date"
+            )
+        }
+
+        return jsonify({"ok": True, **result})
     except Exception:
         current_app.logger.exception("Update check failed")
         return jsonify({

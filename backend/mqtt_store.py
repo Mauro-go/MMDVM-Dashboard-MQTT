@@ -1,8 +1,9 @@
+from node_paths import data_file
 import json
 import sqlite3
 from pathlib import Path
 
-DB = Path(__file__).resolve().parent.parent / 'data' / 'events.sqlite3'
+DB = data_file("events.sqlite3")
 
 
 def connect():

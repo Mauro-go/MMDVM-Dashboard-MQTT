@@ -1,10 +1,11 @@
+from node_paths import data_file
 """Private Telegram notification settings for MMDVM Dashboard (Python 3.9+)."""
 import json
 import os
 import tempfile
 from pathlib import Path
 
-SETTINGS = Path(__file__).resolve().parent.parent / 'data' / 'telegram-settings.json'
+SETTINGS = data_file("telegram-settings.json")
 MODES = ('DMR', 'D-Star', 'YSF', 'P25', 'NXDN', 'FM', 'M17')
 DEFAULTS = {
     'enabled': False,

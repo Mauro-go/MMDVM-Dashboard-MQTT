@@ -414,6 +414,9 @@ def frontend(path):
     return send_from_directory(FRONTEND_DIR, path)
 
 
+from multi import configure_multi
+configure_multi(app)
+
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",

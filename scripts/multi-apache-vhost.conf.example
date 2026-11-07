@@ -1,0 +1,11 @@
+# Example only: use a dedicated HTTPS VirtualHost, never a global ProxyPass /.
+# Replace the hostname and certificate paths before enabling this file.
+<VirtualHost *:443>
+    ServerName multi.example.invalid
+    SSLEngine On
+    SSLCertificateFile /path/to/fullchain.pem
+    SSLCertificateKeyFile /path/to/privkey.pem
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:8090/
+    ProxyPassReverse / http://127.0.0.1:8090/
+</VirtualHost>

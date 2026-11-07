@@ -1,10 +1,11 @@
+from node_paths import data_file
 """Private MQTT connection settings for dashboard collector and admin."""
 import json
 import os
 import tempfile
 from pathlib import Path
 
-SETTINGS = Path(__file__).resolve().parent.parent / "data" / "mqtt-settings.json"
+SETTINGS = data_file("mqtt-settings.json")
 DEFAULTS = {"host": "127.0.0.1", "port": 1883, "topic": "mmdvm/+/json", "username": "", "password": "", "tls": False}
 
 

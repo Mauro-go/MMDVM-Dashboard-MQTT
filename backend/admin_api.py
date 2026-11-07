@@ -128,7 +128,7 @@ def _no_cache(response):
 def admin_page():
     """Serve the admin login and interface from a private directory."""
     return send_file(
-        "/opt/mmdvm-dashboard-mqtt/admin/admin.html",
+        str(Path(__file__).resolve().parent.parent / "admin" / "admin.html"),
         mimetype="text/html"
     )
 

@@ -1,3 +1,5 @@
+from node_paths import data_file
+from contextlib import closing
 #!/usr/bin/env python3
 """Read-only reconstruction of MQTT transmissions from events.sqlite3.
 
@@ -9,7 +11,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB = Path(__file__).resolve().parent.parent / 'data' / 'events.sqlite3'
+DB = data_file('events.sqlite3')
 
 
 def dt(value):
@@ -30,7 +32,7 @@ def local_date_time(value):
 def read_events(db=DB):
     # Open read-only: safe to run while the collector writes.
     uri = Path(db).resolve().as_uri() + '?mode=ro'
-    with sqlite3.connect(uri, uri=True, timeout=5) as con:
+    with closing(sqlite3.connect(uri, uri=True, timeout=5)) as con:
         rows = con.execute('SELECT id,timestamp,mode,action,payload FROM events ORDER BY id').fetchall()
     for event_id, timestamp, mode, action, raw in rows:
         try:

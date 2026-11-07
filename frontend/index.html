@@ -1078,6 +1078,11 @@ async function loadDashboardConfig() {
             const callsign = dashboardConfig.repeater?.callsign || 'Repeater';
             const location = dashboardConfig.repeater?.location || '';
             banner.alt = location ? `${callsign} - ${location}` : callsign;
+            const hasBanner = Boolean(dashboardConfig.images?.banner);
+            banner.hidden = !hasBanner; banner.style.setProperty('display', hasBanner ? 'block' : 'none', 'important');
+            let name = document.getElementById('repeaterName');
+            if (!name) { name = document.createElement('div'); name.id = 'repeaterName'; name.style.cssText = 'font:700 36px system-ui;color:#e6edf7'; banner.insertAdjacentElement('afterend', name); }
+            name.textContent = callsign; name.hidden = hasBanner;
         }
 
     } catch (error) {
@@ -1125,7 +1130,7 @@ async function loadStatus() {
         }
         document.getElementById('temp').textContent = Number.isFinite(sys.temperature) ? sys.temperature.toFixed(1) + '°' : '--';
         document.getElementById('uptime').textContent = Number.isFinite(sys.uptime) ? uptime(sys.uptime) : '--';
-        if (badge) { badge.textContent = data.agent?.mode === 'remote' ? 'IR3ZZO ONLINE' : 'ONLINE'; badge.style.color = '#48e69a'; }
+        if (badge) { badge.textContent = data.agent?.mode === 'remote' ? ((data.repeater?.callsign || dashboardConfig?.repeater?.callsign || 'MMDVM') + ' ONLINE') : 'ONLINE'; badge.style.color = '#48e69a'; }
     } catch (error) { showOffline(); console.error(error); }
 }
 

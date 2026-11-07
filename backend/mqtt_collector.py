@@ -14,6 +14,7 @@ import paho.mqtt.client as mqtt
 from mqtt_store import connect, save
 from mqtt_settings import SETTINGS, load
 import remote_agent
+from multi_mqtt import accept_event
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("mqtt-collector")
@@ -45,7 +46,7 @@ def on_message(client, userdata, msg):
         if remote_agent.ingest(msg.topic, msg.payload):
             return
         event = json.loads(msg.payload.decode("utf-8"))
-        if not isinstance(event, dict):
+        if not isinstance(event, dict) or not accept_event(msg.topic, event):
             return
         for mode, payload in event.items():
             if not isinstance(payload, dict):
@@ -121,6 +122,7 @@ def main():
                 try:
                     new_client = mqtt.Client(userdata={"db": db})
                     new_client.on_message = on_message
+                    new_client.on_subscribe = lambda *args: logger.info("MQTT subscription active (pid=%s)", os.getpid())
                     # COLLECTOR_CALLBACK_SNAPSHOT_V1
                     subscribed_topic = settings["topic"]
                     subscribed_agent = agent_enabled

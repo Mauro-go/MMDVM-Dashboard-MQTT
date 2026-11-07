@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Gestione Multi · MMDVM</title>
+<style>body{margin:0;background:#0e1724;color:#e4edf8;font:16px system-ui}main{max-width:900px;margin:36px auto;padding:0 24px}h1{font-size:30px}section{padding:24px;margin:24px 0;background:#182431;border:1px solid #344357;border-radius:12px}form{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:flex;flex-direction:column;gap:7px}input{padding:11px;border:1px solid #506580;border-radius:6px;background:#0e1724;color:white;font:inherit}button{padding:12px 18px;background:#3c83c4;color:white;border:0;border-radius:6px;font:inherit;cursor:pointer}p{line-height:1.5}a{color:#8fceff}.wide{grid-column:1/-1}.check{flex-direction:row;align-items:center}#message{min-height:24px;white-space:pre-wrap}li{padding:8px}li button{margin-left:14px;padding:7px 12px;font-size:14px}.danger{background:#96394b}@media(max-width:650px){form{grid-template-columns:1fr}}</style></head>
+<body><main><h1>Gestione Multi</h1><p>Il ripetitore principale resta su <a href="/">/</a>. Ogni nuovo ripetitore ha una directory, dati MQTT e un Admin indipendenti.</p>
+<section><h2>Ripetitori</h2><ul id="nodes"></ul><p id="nodeMessage" role="status" aria-live="polite"></p></section><section id="deletedSection" hidden><h2>Ripetitori eliminati</h2><p>I dati e le credenziali sono conservati. Ripristina un ripetitore per renderlo nuovamente disponibile.</p><ul id="deletedNodes"></ul></section>
+<section><h2>Aggiungi ripetitore remoto</h2><p>Usa il node_id e i topic configurati sul ripetitore. Il topic eventi deve essere esatto, senza + o #. Il prefisso Agent deve terminare con /node_id.</p>
+<form id="create">
+<label>Callsign<input name="callsign" placeholder="IR3ABC" required maxlength="20" pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}"></label>
+<label>node_id<input name="node_id" placeholder="ir3abc" required maxlength="64"></label>
+<label>Broker MQTT<input name="host" value="127.0.0.1" required></label>
+<label>Porta MQTT<input name="port" type="number" min="1" max="65535" value="1883" required></label>
+<label>Topic eventi<input name="topic" placeholder="mmdvm/ir3abc/json" required></label>
+<label>Prefisso Agent<input name="agent_topic_prefix" placeholder="mmdvm-agent/ir3abc" required></label>
+<label>Utente MQTT<input name="mqtt_username" autocomplete="off"></label>
+<label>Password MQTT<input name="mqtt_password" type="password" autocomplete="new-password"></label>
+<label class="check wide"><input name="tls" type="checkbox">Usa TLS per MQTT</label>
+<label>Utente Admin del nuovo nodo<input name="admin_username" required minlength="3" maxlength="64" autocomplete="off"></label>
+<label>Password Admin del nuovo nodo<input name="admin_password" type="password" required minlength="12" autocomplete="new-password"></label>
+<p class="wide">Queste credenziali valgono soltanto per il nuovo ripetitore. L’Admin principale gestisce l’elenco Multi.</p>
+<div class="wide"><button type="submit">Aggiungi ripetitore</button></div></form><p id="message" role="status" aria-live="polite"></p></section></main>
+<script>
+const form=document.getElementById('create'), message=document.getElementById('message');
+let csrf='';
+async function api(path,options={}){const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options});const data=await response.json();if(!response.ok)throw Error(data.error||'Operazione non riuscita');return data}
+async function nodeAction(path,payload={}){if(location.protocol!=='https:')throw Error('Usa HTTPS.');const session=await api('/api/admin/session');if(!session.authenticated)throw Error('Accedi all’Admin principale.');return api(path,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrf_token},body:JSON.stringify(payload)})}
+async function refresh(){
+ const list=await api('/api/admin/multi');const ul=document.getElementById('nodes');ul.replaceChildren();
+ for(const n of [{slug:'',callsign:list.primary.callsign,node_id:'principale'},...list.nodes]){
+  const li=document.createElement('li'),a=document.createElement('a');a.href=n.slug?'/'+n.slug+'/':'/';a.textContent=n.callsign;
+  li.append(a,document.createTextNode(' · '+n.node_id+' · '));const admin=document.createElement('a');admin.href=(n.slug?'/'+n.slug:'')+'/api/admin/';admin.textContent='Admin';li.append(admin);
+  if(n.slug){const button=document.createElement('button');button.type='button';button.className='danger';button.textContent='Elimina';button.setAttribute('aria-label','Elimina '+n.callsign);
+   button.onclick=async()=>{if(!confirm('Eliminare '+n.callsign+'? Il nodo sarà fermato e rimosso dal menu. Dati e credenziali resteranno disponibili per il ripristino.'))return;button.disabled=true;const status=document.getElementById('nodeMessage');try{await nodeAction('/api/admin/multi/'+n.slug+'/delete',{confirm_callsign:n.callsign});status.textContent=n.callsign+' eliminato. Puoi ripristinarlo qui sotto.';await refresh()}catch(error){status.textContent=error.message}finally{button.disabled=false}};li.append(button)}
+  ul.append(li)
+ }
+ const deleted=document.getElementById('deletedNodes');deleted.replaceChildren();document.getElementById('deletedSection').hidden=!(list.deleted||[]).length;
+ for(const n of (list.deleted||[])){const li=document.createElement('li');li.append(document.createTextNode(n.callsign+' · '+n.node_id+' · '+new Date(n.deleted_at).toLocaleString('it-IT')+' '));const button=document.createElement('button');button.type='button';button.textContent='Ripristina';button.setAttribute('aria-label','Ripristina '+n.callsign);button.onclick=async()=>{button.disabled=true;const status=document.getElementById('nodeMessage');try{await nodeAction('/api/admin/multi/restore/'+n.archive_id);status.textContent=n.callsign+' ripristinato.';await refresh()}catch(error){status.textContent=error.message}finally{button.disabled=false}};li.append(button);deleted.append(li)}
+ window.dispatchEvent(new Event('multi-nodes-changed'));
+}
+form.elements.callsign.addEventListener('input',()=>{const id=form.elements.callsign.value.toLowerCase();if(!form.elements.node_id.dataset.edited)form.elements.node_id.value=id;fillTopics()});
+form.elements.node_id.addEventListener('input',()=>{form.elements.node_id.dataset.edited='1';fillTopics()});
+function fillTopics(){const id=form.elements.node_id.value;for(const [key,value] of [['topic','mmdvm/'+id+'/json'],['agent_topic_prefix','mmdvm-agent/'+id]])if(!form.elements[key].dataset.edited)form.elements[key].value=value}
+for(const name of ['topic','agent_topic_prefix'])form.elements[name].addEventListener('input',()=>form.elements[name].dataset.edited='1');
+form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;message.textContent='Creazione in corso…';try{if(location.protocol!=='https:')throw Error('Apri la dashboard tramite HTTPS prima di inviare credenziali.');const session=await api('/api/admin/session');if(!session.authenticated)throw Error('Accedi prima all’Admin principale.');csrf=session.csrf_token;const data=Object.fromEntries(new FormData(form));data.port=Number(data.port);data.tls=form.elements.tls.checked;const result=await api('/api/admin/multi',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(data)});form.elements.admin_password.value='';form.elements.mqtt_password.value='';message.textContent='Creato '+result.node.callsign+' su /'+result.node.slug+'/';await refresh()}catch(error){message.textContent=error.message}finally{button.disabled=false}});
+refresh().catch(error=>message.textContent=error.message);
+</script></body></html>

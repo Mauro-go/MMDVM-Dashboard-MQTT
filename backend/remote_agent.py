@@ -1,3 +1,4 @@
+from node_paths import data_file
 """Read-only remote-node view; collector is the only cache writer."""
 import datetime
 import json
@@ -6,7 +7,7 @@ import tempfile
 import time
 from pathlib import Path
 import config as dashboard_config
-STATE = Path(__file__).resolve().parent.parent / 'data' / 'agent-state.json'
+STATE = data_file("agent-state.json")
 KINDS = ('config', 'telemetry', 'status')
 MODES = {'dmr':'DMR', 'dstar':'D-Star', 'ysf':'System Fusion', 'fm':'FM', 'p25':'P25', 'nxdn':'NXDN', 'm17':'M17', 'pocsag':'POCSAG', 'ax25':'AX.25'}
 def enabled():

@@ -1,8 +1,9 @@
 from configparser import ConfigParser
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-CONFIG_FILE = BASE_DIR / "config" / "dashboard.ini"
+CONFIG_FILE = Path(os.environ.get("MMDVM_NODE_CONFIG", str(BASE_DIR / "config" / "dashboard.ini")))
 
 config = ConfigParser(interpolation=None)
 config.read(CONFIG_FILE, encoding="utf-8")
